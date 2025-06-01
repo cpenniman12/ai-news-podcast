@@ -100,9 +100,15 @@ export default function Home() {
 
   // Reset selections when going back to headline selection
   const resetPodcast = () => {
-    console.log('🔄 Resetting podcast state');
+    // Clean up blob URL to prevent memory leaks
+    if (podcastUrl && podcastUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(podcastUrl);
+      console.log('🗑️ Cleaned up podcast blob URL');
+    }
+    
     setPodcastUrl(null);
     setSelectedHeadlines([]);
+    setIsGenerating(false);
   };
 
   console.log('🎨 Rendering component with state:');

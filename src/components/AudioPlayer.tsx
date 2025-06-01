@@ -34,6 +34,12 @@ export function AudioPlayer({ audioUrl, onBack, selectedCount }: AudioPlayerProp
 
     const handleError = (e: Event) => {
       console.error('Audio error:', e);
+      console.error('Audio error details:', {
+        error: audio.error,
+        networkState: audio.networkState,
+        readyState: audio.readyState,
+        src: audio.src
+      });
       setIsLoading(false);
     };
 
@@ -71,6 +77,12 @@ export function AudioPlayer({ audioUrl, onBack, selectedCount }: AudioPlayerProp
       audio.removeEventListener('ended', handleEnded);
       clearTimeout(fallbackTimeout);
       clearInterval(countdownInterval);
+      
+      // Clean up blob URL to prevent memory leaks
+      if (audioUrl && audioUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(audioUrl);
+        console.log('🗑️ Cleaned up blob URL');
+      }
     };
   }, [audioUrl]);
 

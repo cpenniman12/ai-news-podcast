@@ -57,7 +57,10 @@ export function PodcastGenerator({ selectedHeadlines, onGenerate, onComplete, is
         throw new Error('Failed to generate audio');
       }
       
-      const { audioUrl } = await audioRes.json();
+      // Get the audio blob and create a URL for it
+      const audioBlob = await audioRes.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      
       setProgress(100);
       setCurrentStep('Your detailed podcast is ready!');
       

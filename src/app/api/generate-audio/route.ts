@@ -1,7 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
-import { v4 as uuidv4 } from 'uuid';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const OPENAI_TTS_URL = process.env.OPENAI_TTS_URL || 'https://api.openai.com/v1/audio/speech';
@@ -26,41 +23,6 @@ function truncateScript(script: string, maxLength: number = 4000): string {
   }
 }
 
-async function generateAudioFromScript(script: string): Promise<string> {
-  // Truncate script to fit OpenAI TTS character limit
-  const truncatedScript = truncateScript(script, 4000);
-  
-  // Call OpenAI TTS API
-  const response = await fetch(OPENAI_TTS_URL, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${OPENAI_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'tts-1',
-      input: truncatedScript,
-      voice: 'alloy',
-      response_format: 'mp3',
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('OpenAI TTS API error:', errorText);
-    throw new Error('OpenAI TTS API failed');
-  }
-
-  // Get the audio buffer
-  const buffer = Buffer.from(await response.arrayBuffer());
-  // Save to public dir with a unique filename
-  const filename = `podcast-${uuidv4()}.mp3`;
-  const filePath = path.join(process.cwd(), 'public', filename);
-  await fs.promises.writeFile(filePath, buffer);
-  // Return the URL to the audio file
-  return `/${filename}`;
-}
-
 export async function POST(req: NextRequest) {
   // Validate required environment variables at runtime
   if (!OPENAI_API_KEY) {
@@ -76,8 +38,48 @@ export async function POST(req: NextRequest) {
     if (!script || typeof script !== 'string') {
       return NextResponse.json({ error: 'No script provided' }, { status: 400 });
     }
-    const audioUrl = await generateAudioFromScript(script);
-    return NextResponse.json({ audioUrl });
+
+    console.log('🎵 [API] Generating audio with OpenAI TTS...');
+    
+    // Truncate script to fit OpenAI TTS character limit
+    const truncatedScript = truncateScript(script, 4000);
+    
+    // Call OpenAI TTS API
+    const response = await fetch(OPENAI_TTS_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'tts-1',
+        input: truncatedScript,
+        voice: 'alloy',
+        response_format: 'mp3',
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('OpenAI TTS API error:', errorText);
+      throw new Error('OpenAI TTS API failed');
+    }
+
+    console.log('✅ [API] Audio generated successfully, streaming to client...');
+
+    // Stream the audio directly to the client instead of saving to file
+    const audioBuffer = await response.arrayBuffer();
+    
+    return new NextResponse(audioBuffer, {
+      status: 200,
+      headers: {
+        'Content-Type': 'audio/mpeg',
+        'Content-Length': audioBuffer.byteLength.toString(),
+        'Cache-Control': 'public, max-age=3600', // Cache for 1 hour
+        'Content-Disposition': 'inline; filename="podcast.mp3"',
+      },
+    });
+
   } catch (error: any) {
     console.error('Error generating podcast audio:', error);
     return NextResponse.json({ error: 'Failed to generate podcast audio' }, { status: 500 });
