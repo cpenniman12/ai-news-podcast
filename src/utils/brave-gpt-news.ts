@@ -7,17 +7,24 @@ const BRAVE_WEB_API_URL = process.env.BRAVE_WEB_API_URL || 'https://api.search.b
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const OPENAI_API_URL = process.env.OPENAI_API_URL || 'https://api.openai.com/v1/chat/completions';
 
-// Validate required environment variables
-if (!BRAVE_API_KEY) {
-  throw new Error('BRAVE_API_KEY environment variable is required');
+// Runtime validation helpers
+function validateBraveApiKey(): string {
+  if (!BRAVE_API_KEY) {
+    throw new Error('BRAVE_API_KEY environment variable is required');
+  }
+  return BRAVE_API_KEY;
 }
-if (!OPENAI_API_KEY) {
-  throw new Error('OPENAI_API_KEY environment variable is required');
+
+function validateOpenAiApiKey(): string {
+  if (!OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY environment variable is required');
+  }
+  return OPENAI_API_KEY;
 }
 
 // Type assertions after validation - these are now guaranteed to be defined
-const BRAVE_API_KEY_VALIDATED = BRAVE_API_KEY as string;
-const OPENAI_API_KEY_VALIDATED = OPENAI_API_KEY as string;
+const BRAVE_API_KEY_VALIDATED = validateBraveApiKey() as string;
+const OPENAI_API_KEY_VALIDATED = validateOpenAiApiKey() as string;
 
 // Utility function to add delay for rate limiting
 const delay = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));

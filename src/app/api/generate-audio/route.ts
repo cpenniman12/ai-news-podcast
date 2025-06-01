@@ -1,15 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs/promises';
+import fs from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const OPENAI_TTS_URL = process.env.OPENAI_TTS_URL || 'https://api.openai.com/v1/audio/speech';
-
-// Validate required environment variables
-if (!OPENAI_API_KEY) {
-  throw new Error('OPENAI_API_KEY environment variable is required');
-}
 
 function truncateScript(script: string, maxLength: number = 4000): string {
   if (script.length <= maxLength) return script;
@@ -61,12 +56,21 @@ async function generateAudioFromScript(script: string): Promise<string> {
   // Save to public dir with a unique filename
   const filename = `podcast-${uuidv4()}.mp3`;
   const filePath = path.join(process.cwd(), 'public', filename);
-  await fs.writeFile(filePath, buffer);
+  await fs.promises.writeFile(filePath, buffer);
   // Return the URL to the audio file
   return `/${filename}`;
 }
 
 export async function POST(req: NextRequest) {
+  // Validate required environment variables at runtime
+  if (!OPENAI_API_KEY) {
+    console.error('❌ [API] OPENAI_API_KEY environment variable is required');
+    return NextResponse.json(
+      { error: 'OPENAI_API_KEY not configured' },
+      { status: 500 }
+    );
+  }
+
   try {
     const { script } = await req.json();
     if (!script || typeof script !== 'string') {
