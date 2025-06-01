@@ -6,19 +6,15 @@ const BRAVE_WEB_API_URL = process.env.BRAVE_WEB_API_URL || 'https://api.search.b
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const OPENAI_API_URL = process.env.OPENAI_API_URL || 'https://api.openai.com/v1/chat/completions';
 
-// Validate required environment variables
-if (!BRAVE_API_KEY) {
-  throw new Error('BRAVE_API_KEY environment variable is required');
-}
-if (!OPENAI_API_KEY) {
-  throw new Error('OPENAI_API_KEY environment variable is required');
-}
-
 interface SearchResult {
   title: string;
   url: string;
   description: string;
   page_age?: string;
+}
+
+interface SelectedHeadline {
+  text: string;
 }
 
 // Extract the key search terms from a headline for better search accuracy
@@ -169,6 +165,22 @@ Script:`;
 }
 
 export async function POST(req: NextRequest) {
+  // Validate required environment variables at runtime
+  if (!BRAVE_API_KEY) {
+    console.error('❌ [API] BRAVE_API_KEY environment variable is required');
+    return NextResponse.json(
+      { error: 'BRAVE_API_KEY not configured' },
+      { status: 500 }
+    );
+  }
+  if (!OPENAI_API_KEY) {
+    console.error('❌ [API] OPENAI_API_KEY environment variable is required');
+    return NextResponse.json(
+      { error: 'OPENAI_API_KEY not configured' },
+      { status: 500 }
+    );
+  }
+
   console.log('🎙️ [API] Detailed script generation API called');
   
   try {

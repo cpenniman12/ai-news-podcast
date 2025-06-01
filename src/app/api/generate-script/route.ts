@@ -1,13 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
+import { fetchTechNewsHeadlines, generatePodcastScript } from '@/utils/perplexity';
 
 const PPLX_API_KEY = process.env.PPLX_API_KEY;
 const PPLX_API_URL = process.env.PPLX_API_URL || 'https://api.perplexity.ai/chat/completions';
-
-// Validate required environment variables
-if (!PPLX_API_KEY) {
-  throw new Error('PPLX_API_KEY environment variable is required');
-}
 
 async function generateScriptForHeadline(headline: string): Promise<string> {
   const prompt = `You are an expert podcast scriptwriter. Write a conversational, engaging 2-3 minute podcast segment discussing the following news story. Include context, why it matters, and a smooth transition. News story: ${headline}\n\nScript:`;
@@ -35,6 +31,15 @@ async function generateScriptForHeadline(headline: string): Promise<string> {
 }
 
 export async function POST(req: NextRequest) {
+  // Validate required environment variables at runtime
+  if (!PPLX_API_KEY) {
+    console.error('❌ [API] PPLX_API_KEY environment variable is required');
+    return NextResponse.json(
+      { error: 'PPLX_API_KEY not configured' },
+      { status: 500 }
+    );
+  }
+
   try {
     const { headlines } = await req.json();
     if (!Array.isArray(headlines) || headlines.length === 0) {

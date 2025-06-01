@@ -3,9 +3,12 @@ import axios from 'axios';
 const PPLX_API_KEY = process.env.PPLX_API_KEY;
 const PPLX_API_URL = process.env.PPLX_API_URL || 'https://api.perplexity.ai/chat/completions';
 
-// Validate required environment variables
-if (!PPLX_API_KEY) {
-  throw new Error('PPLX_API_KEY environment variable is required');
+// Runtime validation helper
+function validateApiKey(): string {
+  if (!PPLX_API_KEY) {
+    throw new Error('PPLX_API_KEY environment variable is required');
+  }
+  return PPLX_API_KEY;
 }
 
 function getPast7DaysWindow(): string {
@@ -73,7 +76,7 @@ IMPORTANT: Do NOT include any reasoning, explanations, or internal thoughts. Onl
       },
       {
         headers: {
-          'Authorization': `Bearer ${PPLX_API_KEY}`,
+          'Authorization': `Bearer ${validateApiKey()}`,
           'Content-Type': 'application/json',
         },
       }
@@ -122,7 +125,7 @@ export async function generatePodcastScript(headlines: string[]): Promise<string
       },
       {
         headers: {
-          'Authorization': `Bearer ${PPLX_API_KEY}`,
+          'Authorization': `Bearer ${validateApiKey()}`,
           'Content-Type': 'application/json',
         },
       }
@@ -153,7 +156,7 @@ export async function testPerplexityNBAQuery(): Promise<string> {
       },
       {
         headers: {
-          'Authorization': `Bearer ${PPLX_API_KEY}`,
+          'Authorization': `Bearer ${validateApiKey()}`,
           'Content-Type': 'application/json',
         },
       }
