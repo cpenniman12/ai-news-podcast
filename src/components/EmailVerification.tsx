@@ -36,6 +36,12 @@ export function EmailVerification({ onVerified }: EmailVerificationProps) {
     setError('');
     
     try {
+      // Check if Supabase is configured
+      if (!supabase) {
+        setError('Authentication is not configured. Running in demo mode.');
+        return;
+      }
+
       const { error } = await supabase.auth.signInWithOtp({
         email: email,
         options: {
