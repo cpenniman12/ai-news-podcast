@@ -13,6 +13,10 @@ if (!OPENAI_API_KEY) {
   throw new Error('OPENAI_API_KEY environment variable is required');
 }
 
+// Type assertions after validation - these are now guaranteed to be defined
+const BRAVE_API_KEY_VALIDATED = BRAVE_API_KEY as string;
+const OPENAI_API_KEY_VALIDATED = OPENAI_API_KEY as string;
+
 interface SearchResult {
   title: string;
   url: string;
@@ -26,7 +30,7 @@ async function performSingleBraveSearch(): Promise<SearchResult[]> {
   try {
     const query = 'AI artificial intelligence OpenAI ChatGPT Claude Anthropic latest news 2024';
     console.log(`🌐 Query: "${query}"`);
-    console.log(`🔑 API Key: ${BRAVE_API_KEY.substring(0, 10)}...`);
+    console.log(`🔑 API Key: ${BRAVE_API_KEY_VALIDATED.substring(0, 10)}...`);
     
     const response = await axios.get(BRAVE_WEB_API_URL, {
       params: {
@@ -40,7 +44,7 @@ async function performSingleBraveSearch(): Promise<SearchResult[]> {
       headers: {
         'Accept': 'application/json',
         'Accept-Encoding': 'gzip',
-        'X-Subscription-Token': BRAVE_API_KEY
+        'X-Subscription-Token': BRAVE_API_KEY_VALIDATED
       }
     });
 
@@ -130,7 +134,7 @@ Return only the numbered list of headlines with no additional text.`;
       },
       {
         headers: {
-          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          'Authorization': `Bearer ${OPENAI_API_KEY_VALIDATED}`,
           'Content-Type': 'application/json',
         },
       }

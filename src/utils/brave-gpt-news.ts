@@ -15,6 +15,10 @@ if (!OPENAI_API_KEY) {
   throw new Error('OPENAI_API_KEY environment variable is required');
 }
 
+// Type assertions after validation - these are now guaranteed to be defined
+const BRAVE_API_KEY_VALIDATED = BRAVE_API_KEY as string;
+const OPENAI_API_KEY_VALIDATED = OPENAI_API_KEY as string;
+
 // Utility function to add delay for rate limiting
 const delay = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -71,7 +75,7 @@ async function performBraveSearch(query: string, category: string): Promise<Sear
   
   try {
     console.log(`🌐 Making API request to: ${BRAVE_WEB_API_URL}`);
-    console.log(`🔑 Using API key: ${BRAVE_API_KEY.substring(0, 10)}...`);
+    console.log(`🔑 Using API key: ${BRAVE_API_KEY_VALIDATED.substring(0, 10)}...`);
     
     const response = await axios.get(BRAVE_WEB_API_URL, {
       params: {
@@ -85,7 +89,7 @@ async function performBraveSearch(query: string, category: string): Promise<Sear
       headers: {
         'Accept': 'application/json',
         'Accept-Encoding': 'gzip',
-        'X-Subscription-Token': BRAVE_API_KEY
+        'X-Subscription-Token': BRAVE_API_KEY_VALIDATED
       }
     });
 
@@ -204,7 +208,7 @@ async function gatherBraveSearchResults(): Promise<SearchResult[]> {
     if (allResults.length === 0) {
       console.error('❌ CRITICAL: All Brave Search queries returned 0 results!');
       console.error('🔍 Debugging info:');
-      console.error(`  - API Key: ${BRAVE_API_KEY.substring(0, 10)}...`);
+      console.error(`  - API Key: ${BRAVE_API_KEY_VALIDATED.substring(0, 10)}...`);
       console.error(`  - API URL: ${BRAVE_WEB_API_URL}`);
       console.error(`  - Search categories: ${SEARCH_CATEGORIES.length}`);
       console.error(`  - Total queries: ${searchCount}`);
@@ -276,7 +280,7 @@ Return only the numbered list of 20 refined headlines with no additional text.`;
       },
       {
         headers: {
-          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          'Authorization': `Bearer ${OPENAI_API_KEY_VALIDATED}`,
           'Content-Type': 'application/json',
         },
       }
