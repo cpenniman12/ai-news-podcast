@@ -15,6 +15,70 @@ interface SearchResult {
   page_age?: string;
 }
 
+interface CachedHeadlines {
+  headlines: string[];
+  lastFetch: string;
+  strategy: string;
+}
+
+// In-memory cache (will reset on server restart, but that's fine for daily refresh)
+let headlineCache: CachedHeadlines | null = null;
+
+// Utility function to check if we need to refresh headlines
+function needsRefresh(): boolean {
+  if (!headlineCache) {
+    console.log('📰 [CACHE] No cache found, need to fetch headlines');
+    return true;
+  }
+
+  const now = new Date();
+  const lastFetch = new Date(headlineCache.lastFetch);
+  
+  // Get today's 6am ET (11am UTC considering EST, 10am UTC during EDT)
+  const todayAt6amET = new Date();
+  
+  // Determine if we're in EST or EDT
+  const isEDT = isEasternDaylightTime(now);
+  const utcOffset = isEDT ? 10 : 11; // EDT = UTC-4 (so 6am ET = 10am UTC), EST = UTC-5 (so 6am ET = 11am UTC)
+  
+  todayAt6amET.setUTCHours(utcOffset, 0, 0, 0);
+  
+  // If current time is before today's 6am ET, use yesterday's 6am ET as the refresh time
+  if (now < todayAt6amET) {
+    todayAt6amET.setUTCDate(todayAt6amET.getUTCDate() - 1);
+  }
+  
+  const shouldRefresh = lastFetch < todayAt6amET;
+  
+  console.log('🕐 [CACHE] Refresh check:', {
+    now: now.toISOString(),
+    lastFetch: lastFetch.toISOString(),
+    todayAt6amET: todayAt6amET.toISOString(),
+    isEDT,
+    utcOffset,
+    shouldRefresh,
+    cacheAge: Math.round((now.getTime() - lastFetch.getTime()) / (1000 * 60 * 60)) + 'h'
+  });
+  
+  return shouldRefresh;
+}
+
+// Helper function to determine if we're in Eastern Daylight Time
+function isEasternDaylightTime(date: Date): boolean {
+  // DST in US runs from second Sunday in March to first Sunday in November
+  const year = date.getFullYear();
+  
+  // Second Sunday in March
+  const march = new Date(year, 2, 1); // March 1st
+  const dstStart = new Date(year, 2, 14 - march.getDay()); // Second Sunday
+  
+  // First Sunday in November  
+  const november = new Date(year, 10, 1); // November 1st
+  const dstEnd = new Date(year, 10, 7 - november.getDay()); // First Sunday
+  
+  return date >= dstStart && date < dstEnd;
+}
+
 // Utility function to add delay for rate limiting
 const delay = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -178,6 +242,54 @@ Headlines:`;
   }
 }
 
+// Function to fetch fresh headlines
+async function fetchFreshHeadlines(): Promise<{ headlines: string[], strategy: string }> {
+  console.log('🔄 [CACHE] Fetching fresh headlines...');
+  
+  let headlines: string[] = [];
+  let strategy = '';
+  
+  // Strategy 1: Try single Brave search first
+  try {
+    console.log('🚀 [API] STRATEGY 1: Single Brave Search...');
+    const searchResults = await performSingleBraveSearch();
+    
+    if (searchResults.length > 0) {
+      headlines = await refineWithGPT(searchResults);
+      strategy = 'brave_search';
+      console.log('✅ [API] Strategy 1 successful! Headlines:', headlines.length);
+    } else {
+      throw new Error('No search results from Brave');
+    }
+    
+  } catch (braveError: any) {
+    console.log('⚠️ [API] Strategy 1 failed, trying Strategy 2...');
+    
+    // Strategy 2: Use Perplexity fallback
+    if (PPLX_API_KEY) {
+      try {
+        console.log('🚀 [API] STRATEGY 2: Perplexity Fallback...');
+        headlines = await performPerplexityFallback();
+        strategy = 'perplexity_fallback';
+        console.log('✅ [API] Strategy 2 successful! Headlines:', headlines.length);
+      } catch (pplxError: any) {
+        console.error('❌ [API] Strategy 2 also failed');
+        throw new Error('All headline strategies failed');
+      }
+    } else {
+      console.error('❌ [API] No Perplexity API key for fallback');
+      throw braveError;
+    }
+  }
+  
+  // Ensure we have results
+  if (!headlines || headlines.length === 0) {
+    throw new Error('No headlines generated from any strategy');
+  }
+  
+  return { headlines, strategy };
+}
+
 export async function GET() {
   console.log('🔌 [API] Headlines API route called');
   
@@ -198,55 +310,58 @@ export async function GET() {
   }
 
   try {
-    let headlines: string[] = [];
-    
-    // Strategy 1: Try single Brave search first
-    try {
-      console.log('🚀 [API] STRATEGY 1: Single Brave Search...');
-      const searchResults = await performSingleBraveSearch();
+    // Check if we need to refresh headlines
+    if (!needsRefresh() && headlineCache) {
+      console.log('✅ [CACHE] Serving cached headlines');
+      console.log('📋 [CACHE] Cache age:', Math.round((new Date().getTime() - new Date(headlineCache.lastFetch).getTime()) / (1000 * 60 * 60)) + 'h');
       
-      if (searchResults.length > 0) {
-        headlines = await refineWithGPT(searchResults);
-        console.log('✅ [API] Strategy 1 successful! Headlines:', headlines.length);
-      } else {
-        throw new Error('No search results from Brave');
-      }
-      
-    } catch (braveError: any) {
-      console.log('⚠️ [API] Strategy 1 failed, trying Strategy 2...');
-      
-      // Strategy 2: Use Perplexity fallback
-      if (PPLX_API_KEY) {
-        try {
-          console.log('🚀 [API] STRATEGY 2: Perplexity Fallback...');
-          headlines = await performPerplexityFallback();
-          console.log('✅ [API] Strategy 2 successful! Headlines:', headlines.length);
-        } catch (pplxError: any) {
-          console.error('❌ [API] Strategy 2 also failed');
-          throw new Error('All headline strategies failed');
-        }
-      } else {
-        console.error('❌ [API] No Perplexity API key for fallback');
-        throw braveError;
-      }
+      return NextResponse.json({
+        headlines: headlineCache.headlines,
+        strategy: headlineCache.strategy,
+        timestamp: headlineCache.lastFetch,
+        cached: true,
+        nextRefresh: 'Tomorrow at 6:00 AM ET'
+      });
     }
+
+    // Fetch fresh headlines
+    console.log('🔄 [CACHE] Cache miss or stale, fetching fresh headlines...');
+    const { headlines, strategy } = await fetchFreshHeadlines();
     
-    // Ensure we have results
-    if (!headlines || headlines.length === 0) {
-      throw new Error('No headlines generated from any strategy');
-    }
+    // Update cache
+    headlineCache = {
+      headlines,
+      lastFetch: new Date().toISOString(),
+      strategy
+    };
     
-    console.log('🎉 [API] Final result:', headlines.length, 'headlines');
+    console.log('🎉 [API] Fresh headlines fetched and cached:', headlines.length);
     console.log('📋 [API] Sample headlines:', headlines.slice(0, 3));
     
-    return NextResponse.json({ 
+    return NextResponse.json({
       headlines,
-      strategy: headlines.length > 15 ? 'brave_search' : 'perplexity_fallback',
-      timestamp: new Date().toISOString()
+      strategy,
+      timestamp: headlineCache.lastFetch,
+      cached: false,
+      nextRefresh: 'Tomorrow at 6:00 AM ET'
     });
     
   } catch (error: any) {
     console.error('❌ [API] Complete failure:', error.message);
+    
+    // If we have cached headlines, serve them even if they're stale
+    if (headlineCache) {
+      console.log('🚨 [CACHE] Error occurred, serving stale cache as fallback');
+      return NextResponse.json({
+        headlines: headlineCache.headlines,
+        strategy: headlineCache.strategy + '_fallback',
+        timestamp: headlineCache.lastFetch,
+        cached: true,
+        error: 'Fresh fetch failed, serving cached headlines',
+        nextRefresh: 'Tomorrow at 6:00 AM ET'
+      });
+    }
+    
     return NextResponse.json(
       { 
         error: 'Failed to fetch headlines',
@@ -256,4 +371,4 @@ export async function GET() {
       { status: 500 }
     );
   }
-} 
+}
