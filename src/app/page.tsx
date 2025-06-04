@@ -122,14 +122,14 @@ export default function Home() {
   if (isAuthLoading) {
     console.log('🔄 Showing auth loading screen');
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center max-w-md mx-auto px-4">
           <div className="animate-spin w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-6"></div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-3">Initializing Your AI News Podcast</h2>
-          <p className="text-gray-600 mb-2">
+          <h2 className="text-xl font-semibold text-white mb-3">Initializing Your AI News Podcast</h2>
+          <p className="text-gray-300 mb-2">
             Setting up your personalized news experience...
           </p>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-400">
             Just a moment while we get everything ready.
           </p>
         </div>
@@ -141,23 +141,23 @@ export default function Home() {
   if (user && isHeadlinesLoading) {
     console.log('🔄 Showing headlines loading screen');
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center max-w-md mx-auto px-4">
           <div className="animate-spin w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-6"></div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-3">Loading Latest AI News</h2>
-          <p className="text-gray-600 mb-2">
+          <h2 className="text-xl font-semibold text-white mb-3">Loading Latest AI News</h2>
+          <p className="text-gray-300 mb-2">
             Searching multiple news sources including TechCrunch, The Verge, Reuters, and Bloomberg...
           </p>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-400">
             This may take a moment to ensure we get the most recent stories.
           </p>
           
           {/* Progress indicator */}
           <div className="mt-6">
-            <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="w-full bg-gray-700 rounded-full h-2">
               <div className="bg-blue-600 h-2 rounded-full animate-pulse" style={{ width: '60%' }}></div>
             </div>
-            <p className="text-xs text-gray-500 mt-2">Gathering the latest AI & tech headlines...</p>
+            <p className="text-xs text-gray-400 mt-2">Gathering the latest AI & tech headlines...</p>
           </div>
         </div>
       </div>
@@ -168,15 +168,15 @@ export default function Home() {
   if (headlineError) {
     console.log('❌ Showing headlines error screen');
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center max-w-md mx-auto px-4">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="w-16 h-16 bg-red-900 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-3">Unable to Load Headlines</h2>
-          <p className="text-gray-600 mb-6">
+          <h2 className="text-xl font-semibold text-white mb-3">Unable to Load Headlines</h2>
+          <p className="text-gray-300 mb-6">
             We're having trouble connecting to our news sources. This might be due to high demand or a temporary service issue.
           </p>
           <button
@@ -200,15 +200,15 @@ export default function Home() {
     // If no user, show email verification instead of loading
     if (!user) {
       return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="min-h-screen bg-black">
           <div className="container mx-auto px-4 py-6 max-w-2xl">
             {/* Header */}
             <div className="text-center mb-8">
-              <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-                AI News Podcast Generator
+              <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
+                The latest AI news, by AI
               </h1>
-              <p className="text-gray-600 text-lg">
-                Create personalized AI & tech news podcasts
+              <p className="text-gray-300 text-lg">
+                curate, generate, listen
               </p>
             </div>
             
@@ -216,20 +216,20 @@ export default function Home() {
             {supabase ? (
               <EmailVerification onVerified={() => {/* handled by auth state change */}} />
             ) : (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-6">
+              <div className="bg-yellow-900 border border-yellow-700 rounded-lg p-6 mb-6">
                 <div className="flex items-center space-x-3 mb-4">
-                  <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
-                    <svg className="w-4 h-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="w-8 h-8 bg-yellow-800 rounded-full flex items-center justify-center">
+                    <svg className="w-4 h-4 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-900">Demo Mode</h3>
+                  <h3 className="text-lg font-semibold text-white">Demo Mode</h3>
                 </div>
-                <p className="text-gray-700 mb-4">
+                <p className="text-gray-300 mb-4">
                   Authentication is not configured. You can still use the app in demo mode to generate podcasts.
                 </p>
-                <p className="text-sm text-gray-600">
-                  To enable full authentication features, configure your Supabase credentials in the <code className="bg-gray-100 px-1 rounded">.env.local</code> file.
+                <p className="text-sm text-gray-400">
+                  To enable full authentication features, configure your Supabase credentials in the <code className="bg-gray-800 px-1 rounded">env.local</code> file.
                 </p>
               </div>
             )}
@@ -240,14 +240,14 @@ export default function Home() {
     
     // If user exists but no headlines yet, show loading
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center max-w-md mx-auto px-4">
           <div className="animate-spin w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-6"></div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-3">Loading Your AI News Feed</h2>
-          <p className="text-gray-600 mb-2">
+          <h2 className="text-xl font-semibold text-white mb-3">Loading Your AI News Feed</h2>
+          <p className="text-gray-300 mb-2">
             Gathering the latest AI and technology headlines...
           </p>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-400">
             This ensures you get the most current and relevant stories
           </p>
         </div>
@@ -258,21 +258,21 @@ export default function Home() {
   // Main app interface (only shown when user is authenticated AND headlines are loaded)
   console.log('✅ Showing main app interface');
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-black">
       <div className="container mx-auto px-4 py-6 max-w-2xl">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-            AI News Podcast Generator
+          <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
+            The latest AI news, by AI
           </h1>
-          <p className="text-gray-600 text-lg">
-            Create personalized AI & tech news podcasts
+          <p className="text-gray-300 text-lg">
+            curate, generate, listen
           </p>
           
           {/* User info and sign out */}
           {user && (
             <div className="mt-4 flex items-center justify-center space-x-4">
-              <span className="text-sm text-gray-600">
+              <span className="text-sm text-gray-400">
                 {supabase ? `Signed in as ${user.email}` : 'Demo Mode'}
               </span>
               {supabase && (
@@ -280,7 +280,7 @@ export default function Home() {
                   onClick={async () => {
                     await supabase.auth.signOut();
                   }}
-                  className="text-sm text-blue-600 hover:text-blue-700 underline"
+                  className="text-sm text-blue-400 hover:text-blue-300 underline"
                 >
                   Sign out
                 </button>
@@ -290,7 +290,7 @@ export default function Home() {
           
           {/* Headlines loaded indicator */}
           <div className="mt-3">
-            <div className="inline-flex items-center px-3 py-1 rounded-full text-xs bg-green-100 text-green-800">
+            <div className="inline-flex items-center px-3 py-1 rounded-full text-xs bg-green-900 text-green-300">
               <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
               </svg>
