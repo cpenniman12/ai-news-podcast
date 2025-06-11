@@ -111,18 +111,21 @@ ${researchContent || 'Limited research data available - focus on the headline in
 
 **Instructions:**
 - Write a conversational 2-3 minute podcast segment (approximately 300-450 words)
-- Start with a brief, engaging hook about why this story matters
+- Cut straight to the story - NO intro or greeting
 - Explain the key details: who, what, when, where, why
 - Include specific numbers, funding amounts, or technical details when available
+- IMPORTANT: Include primary source quotes from journalists, company executives, public figures, or other relevant sources whenever possible
+- Use actual quotes like: "As CEO John Smith stated, 'This technology will revolutionize how we work'"
+- Or: "The company's press release emphasized that 'privacy remains our top priority'"
+- Or: "Security researcher Jane Doe warned, 'This vulnerability affects millions of users'"
 - Explain the broader implications for the AI/tech industry
 - Use a warm, conversational tone as if speaking directly to listeners
 - End with a smooth transition phrase that leads into the next story
-- DO NOT mention sources directly or say "according to reports"
 - Speak as if you have expert knowledge of the topic
 
 **Format:** Write only the spoken script text, no stage directions or metadata.
 
-**Example tone:** "Here's something that caught my attention this week - [story details]. What makes this particularly interesting is [analysis]. For anyone following the AI space, this signals [implications]..."
+**Example with quotes:** "OpenAI's latest model just dropped some major capabilities. CEO Sam Altman announced, 'This represents our most significant breakthrough in reasoning capabilities.' The new model can handle complex mathematical problems that previously stumped AI systems. As one early tester put it, 'It's like having a PhD mathematician in your pocket.' What makes this particularly interesting is [analysis]..."
 
 Script:`;
 
@@ -193,10 +196,7 @@ export async function POST(req: NextRequest) {
 
     console.log(`📰 [API] Processing ${headlines.length} headlines for detailed script generation`);
     
-    // Add podcast intro
-    const introScript = `Welcome to your personalized AI News Podcast! I'm excited to dive into ${headlines.length} fascinating stories from the world of artificial intelligence and technology. Let's get started.\n\n`;
-    
-    const storyScripts: string[] = [introScript];
+    const storyScripts: string[] = [];
     
     // Process each headline: research + script generation
     for (let i = 0; i < headlines.length; i++) {
@@ -221,9 +221,6 @@ export async function POST(req: NextRequest) {
       }
     }
     
-    // Add podcast outro
-    const outroScript = `\n\nThat wraps up today's AI news roundup! Thanks for listening to your personalized podcast. Stay curious, and I'll catch you next time with more exciting developments from the world of artificial intelligence.`;
-    storyScripts.push(outroScript);
     
     // Combine all scripts
     const fullScript = storyScripts.join('\n\n');

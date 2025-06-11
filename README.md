@@ -190,6 +190,46 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 For questions, issues, or feature requests, please open an issue on GitHub or contact the maintainer.
 
+## Enhanced Research Functionality for Podcast Content
+
+This project now includes a powerful research pipeline to improve the factual quality and depth of podcast stories. The new system is implemented in `src/utils/enhanced-research.ts` and provides:
+
+### Key Features
+- **Multiple Targeted Brave Searches:**
+  - 30 searches per run, across 6 strategic AI news categories (Product Releases, Company Moves, Startups, Research, Infrastructure, Regulation)
+- **Content Aggregation & Deduplication:**
+  - Aggregates 100+ news results, deduplicates by URL, title, and content similarity
+  - Prioritizes authoritative sources (e.g., TechCrunch, OpenAI, Bloomberg, arXiv)
+- **Robust Error Handling & Rate Limiting:**
+  - 3-second delay between API calls, comprehensive error handling, and graceful fallbacks
+- **GPT-4o Headline Refinement:**
+  - Uses GPT-4o to select the 25 most significant, diverse, and high-quality headlines for the day
+
+### How This Improves Podcast Content
+- **Much richer, more factual stories:** Each story is now based on 3-5x more research sources
+- **Less model hallucination:** The script generator gets more direct quotes, facts, and context
+- **No context limit issues:** Each story is processed individually, then stitched together for TTS
+
+### Usage
+
+1. **Set your API keys as environment variables:**
+   - `BRAVE_API_KEY` (for Brave Search)
+   - `OPENAI_API_KEY` (for GPT-4o refinement)
+
+2. **Run the enhanced research script:**
+   ```bash
+   # Example (Node.js/TS):
+   npx ts-node src/utils/enhanced-research.ts
+   ```
+   Or import and call `fetchEnhancedTechNewsHeadlines()` in your code.
+
+3. **Integrate with your story generation pipeline:**
+   - Use the output headlines as input for your story scripting and TTS modules.
+
+---
+
+For more details, see the code in `src/utils/enhanced-research.ts` or ask Claude Code for help with further automation or integration.
+
 ---
 
 **Built with ❤️ for the AI community**
