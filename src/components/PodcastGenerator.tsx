@@ -37,17 +37,18 @@ export function PodcastGenerator({ selectedHeadlines, onGenerate, onComplete, is
         throw new Error('Failed to generate detailed script');
       }
       
-      const { script, stats } = await scriptRes.json();
+      // Expecting: { script: string, scripts: string[], stats: object }
+      const { script, scripts, stats } = await scriptRes.json();
       console.log('📊 Script generation stats:', stats);
       
       setProgress(70);
       setCurrentStep('Converting script to high-quality audio...');
 
-      // Step 2: Generate audio from detailed script
+      // Step 2: Generate audio from array of story scripts
       const audioRes = await fetch('/api/generate-audio', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ script }),
+        body: JSON.stringify({ scripts: scripts || [script] }),
       });
       
       if (!audioRes.ok) {

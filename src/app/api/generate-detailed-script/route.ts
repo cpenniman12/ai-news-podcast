@@ -231,6 +231,7 @@ export async function POST(req: NextRequest) {
     
     return NextResponse.json({ 
       script: fullScript,
+      scripts: storyScripts,
       stats: {
         storiesProcessed: headlines.length,
         scriptLength: fullScript.length,
