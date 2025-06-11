@@ -6,7 +6,18 @@ const PPLX_API_KEY = process.env.PPLX_API_KEY;
 const PPLX_API_URL = process.env.PPLX_API_URL || 'https://api.perplexity.ai/chat/completions';
 
 async function generateScriptForHeadline(headline: string): Promise<string> {
-  const prompt = `You are an expert podcast scriptwriter. Write a conversational, engaging 2-3 minute podcast segment discussing the following news story. Include context, why it matters, and a smooth transition. News story: ${headline}\n\nScript:`;
+  const prompt = `You are an expert podcast scriptwriter. Write a conversational, engaging 2-3 minute podcast segment discussing the following news story. 
+
+**Instructions:**
+- Cut straight to the story - NO intro or greeting  
+- Include context, why it matters, and a smooth transition
+- IMPORTANT: Include primary source quotes from journalists, company executives, public figures, or other relevant sources whenever possible
+- Use actual quotes like: "As CEO John Smith stated, 'This technology will revolutionize how we work'"
+- Or: "The company's press release emphasized that 'privacy remains our top priority'"
+
+News story: ${headline}
+
+Script:`;
   const response = await axios.post(
     PPLX_API_URL,
     {
