@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
+import { createClient as createSupabaseClient } from '@/utils/supabase/server';
+import { v4 as uuidv4 } from 'uuid';
 
 const BRAVE_API_KEY = process.env.BRAVE_API_KEY;
 const BRAVE_WEB_API_URL = process.env.BRAVE_WEB_API_URL || 'https://api.search.brave.com/res/v1/web/search';
@@ -224,6 +226,46 @@ export async function POST(req: NextRequest) {
     
     // Combine all scripts
     const fullScript = storyScripts.join('\n\n');
+    
+    // --- Supabase Storage Integration ---
+    try {
+      const supabase = await createSupabaseClient();
+      // Insert podcast episode
+      const { data: episodeData, error: episodeError } = await supabase
+        .from('podcast_episodes')
+        .insert([
+          {
+            id: uuidv4(),
+            title: `Podcast - ${new Date().toISOString()}`,
+            script: fullScript,
+            status: 'complete',
+          },
+        ])
+        .select()
+        .single();
+      if (episodeError) {
+        console.error('Supabase episode insert error:', episodeError);
+      }
+      const episodeId = episodeData?.id;
+      // Insert stories
+      for (let i = 0; i < headlines.length; i++) {
+        const headline = headlines[i];
+        const script = storyScripts[i];
+        await supabase.from('stories').insert([
+          {
+            episode_id: episodeId,
+            headline,
+            script,
+            order: i + 1,
+            sources: null, // Optionally add research sources if available
+            quotes: null,  // Optionally extract and add quotes if available
+          },
+        ]);
+      }
+    } catch (err) {
+      console.error('Supabase storage error:', err);
+    }
+    // --- End Supabase Storage ---
     
     console.log(`🎉 [API] Complete podcast script generated!`);
     console.log(`📊 [API] Total script length: ${fullScript.length} characters`);
