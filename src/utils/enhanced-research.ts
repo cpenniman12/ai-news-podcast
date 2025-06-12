@@ -573,10 +573,10 @@ No explanations, just the pure list of 25 headlines.`;
     // Parse the numbered list
     const headlines = content
       .split('\n')
-      .map(line => line.trim())
-      .filter(line => /^\d+\./.test(line)) // Only lines starting with number and period
-      .map(line => line.replace(/^\d+\.\s*/, '')) // Remove numbering
-      .filter(line => line.length > 10); // Filter out very short lines
+      .map((line: string) => line.trim())
+      .filter((line: string) => /^\d+\./.test(line)) // Only lines starting with number and period
+      .map((line: string) => line.replace(/^\d+\.\s*/, '')) // Remove numbering
+      .filter((line: string) => line.length > 10); // Filter out very short lines
 
     console.log(`🤖 GPT-4o refined selection: ${headlines.length} headlines chosen`);
     return headlines.slice(0, 25); // Ensure exactly 25 headlines
