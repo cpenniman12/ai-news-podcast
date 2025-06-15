@@ -28,26 +28,20 @@ export function HeadlineSelector({ headlines, selectedHeadlines, onSelectionChan
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-white mb-2">Select Your Stories</h2>
         <p className="text-gray-300 mb-4">
-          Choose 2-6 AI and tech news stories for your personalized podcast
+          Choose up to six stories
         </p>
         
         {/* Counter */}
         <div className="flex items-center justify-between bg-gray-800 rounded-lg p-3">
           <span className="font-medium text-gray-300">Stories Selected:</span>
           <span className={`font-bold text-lg ${
-            selectedHeadlines.length >= 2 && selectedHeadlines.length <= 6 
+            selectedHeadlines.length > 0 
               ? 'text-green-400' 
               : 'text-gray-500'
           }`}>
             {selectedHeadlines.length} / 6
           </span>
         </div>
-        
-        {selectedHeadlines.length < 2 && (
-          <p className="text-sm text-amber-400 mt-2">
-            Please select at least 2 stories to generate your podcast
-          </p>
-        )}
       </div>
 
       {/* Headlines List */}
