@@ -13,7 +13,7 @@ export function PodcastGenerator({ selectedHeadlines, onGenerate, onComplete, is
   const [progress, setProgress] = useState(0);
   const [currentStep, setCurrentStep] = useState('');
 
-  const isValidSelection = selectedHeadlines.length >= 2 && selectedHeadlines.length <= 6;
+  const isValidSelection = selectedHeadlines.length >= 1 && selectedHeadlines.length <= 6;
 
   const generatePodcast = async () => {
     if (!isValidSelection) return;
@@ -95,12 +95,6 @@ export function PodcastGenerator({ selectedHeadlines, onGenerate, onComplete, is
             </svg>
             <span>Generate</span>
           </button>
-
-          {!isValidSelection && (
-            <p className="text-center text-sm text-gray-400 mt-4">
-              Please select 2-6 stories to generate your podcast
-            </p>
-          )}
         </>
       ) : (
         <>
