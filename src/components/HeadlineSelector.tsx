@@ -71,23 +71,6 @@ export function HeadlineSelector({ headlines, selectedHeadlines, onSelectionChan
           );
         })}
       </div>
-
-      {/* Summary */}
-      {selectedHeadlines.length > 0 && (
-        <div className="mt-6 p-4 bg-gray-800 rounded-lg">
-          <h3 className="font-medium text-white mb-2">Your Selected Stories:</h3>
-          <ul className="space-y-1">
-            {selectedHeadlines.map((headline, index) => (
-              <li key={index} className="text-sm text-gray-300 flex items-center">
-                <span className="w-4 h-4 bg-blue-500 text-white rounded-full text-xs flex items-center justify-center mr-2 flex-shrink-0">
-                  {index + 1}
-                </span>
-                <span className="line-clamp-1">{headline}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
     </div>
   );
 }
