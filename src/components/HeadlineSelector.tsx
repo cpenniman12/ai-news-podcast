@@ -26,7 +26,6 @@ export function HeadlineSelector({ headlines, selectedHeadlines, onSelectionChan
   return (
     <div className="bg-gray-900 rounded-lg shadow-md p-6 border border-gray-800">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-white mb-2">Select Your Stories</h2>
         <p className="text-gray-300 mb-4">
           Choose up to six stories
         </p>
