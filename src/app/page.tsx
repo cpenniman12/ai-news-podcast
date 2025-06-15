@@ -191,7 +191,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-black flex flex-col">
       {/* Header */}
-      <header className="px-5 py-6 border-b border-white border-opacity-10 md:px-10 md:py-10 md:pb-8">
+      <header className="px-5 py-6 md:px-10 md:py-10 md:pb-8">
         <div className="max-w-[680px] mx-auto">
           <h1 className="text-[1.75rem] md:text-4xl font-semibold tracking-tight mb-2 md:mb-3">
             The latest AI news, by AI
@@ -251,7 +251,7 @@ export default function Home() {
 
       {/* Fixed Bottom Actions - only show when not playing podcast */}
       {!podcastUrl && (
-        <div className="fixed bottom-0 left-0 right-0 bg-black bg-opacity-90 backdrop-blur-[20px] border-t border-white border-opacity-10 p-5 md:p-6 z-[1000]">
+        <div className="fixed bottom-0 left-0 right-0 bg-black bg-opacity-90 backdrop-blur-[20px] p-5 md:p-6 z-[1000]">
           <div className="max-w-[680px] mx-auto flex justify-center">
             <PodcastGenerator
               selectedHeadlines={selectedHeadlines}

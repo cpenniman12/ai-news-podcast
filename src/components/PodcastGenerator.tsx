@@ -77,33 +77,11 @@ export function PodcastGenerator({ selectedHeadlines, onGenerate, onComplete, is
   if (isGenerating) {
     return (
       <div className="w-full max-w-md">
-        {/* Progress indicator */}
-        <div className="mb-4">
-          <div className="flex justify-between text-sm text-white text-opacity-60 mb-2">
-            <span>Progress</span>
-            <span>{Math.round(progress)}%</span>
-          </div>
-          <div className="w-full bg-white bg-opacity-20 rounded-full h-1">
-            <div 
-              className="bg-white h-1 rounded-full transition-all duration-300 ease-out"
-              style={{ width: `${progress}%` }}
-            ></div>
-          </div>
-        </div>
-        
         {/* Current step */}
         <div className="text-center">
-          <p className="text-white text-opacity-90 font-medium mb-1">{currentStep}</p>
-          {progress < 70 && (
-            <p className="text-sm text-white text-opacity-50">
-              Gathering detailed information from multiple sources...
-            </p>
-          )}
-          {progress >= 70 && progress < 100 && (
-            <p className="text-sm text-white text-opacity-50">
-              Converting to natural-sounding audio...
-            </p>
-          )}
+          <p className="text-white text-opacity-90 font-medium">
+            researching headlines. this may take a few minutes.
+          </p>
         </div>
       </div>
     );
@@ -117,7 +95,7 @@ export function PodcastGenerator({ selectedHeadlines, onGenerate, onComplete, is
         px-8 py-3.5 md:px-10 md:py-4 border-0 rounded-3xl text-[0.9375rem] md:text-base font-medium cursor-pointer transition-all duration-200 min-w-[200px] md:min-w-[240px]
         ${isValidSelection 
           ? 'bg-white text-black active:scale-[0.98] md:hover:-translate-y-0.5 md:hover:bg-white md:hover:bg-opacity-90' 
-          : 'bg-white bg-opacity-30 text-white cursor-not-allowed'
+          : 'bg-white bg-opacity-20 text-gray-400 cursor-not-allowed'
         }
       `}
     >
