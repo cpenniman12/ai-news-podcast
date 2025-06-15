@@ -48,11 +48,10 @@ export function HeadlineSelector({ headlines, selectedHeadlines, onSelectionChan
           <div
             key={index}
             className={`
-              py-5 md:py-6 border-b border-white border-opacity-10 cursor-pointer transition-all duration-200 relative select-none
+              py-5 md:py-6 cursor-pointer transition-all duration-200 relative select-none
               ${isSelected ? 'pl-5' : ''}
               ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}
               ${!isDisabled ? 'active:opacity-70 md:hover:pl-3' : ''}
-              ${index === headlines.length - 1 ? 'border-b-0' : ''}
             `}
             onClick={() => !isDisabled && handleToggleHeadline(headline)}
           >

@@ -230,16 +230,7 @@ export function AudioPlayer({ audioUrl, onBack, selectedCount }: AudioPlayerProp
             </p>
           </div>
 
-          {/* Features */}
-          <div className="bg-gray-800 rounded-lg p-4">
-            <h3 className="font-medium text-white mb-2">What's included:</h3>
-            <ul className="text-sm text-gray-300 space-y-1">
-              <li>• Conversational podcast format</li>
-              <li>• AI-generated transitions</li>
-              <li>• Professional voice narration</li>
-              <li>• Latest tech and AI news</li>
-            </ul>
-          </div>
+
         </div>
       </div>
     </div>

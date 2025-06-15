@@ -347,12 +347,10 @@ async function fetchFreshHeadlines(): Promise<{ headlines: string[], strategy: s
         const d = new Date(r.page_age);
         if (!isNaN(d.getTime())) {
           dateStr = d.toISOString().split('T')[0];
-        } else {
-          console.warn('[BRAVE DEBUG] Invalid page_age date:', r.page_age, r.title);
         }
-      } catch (err) {
-        console.warn('[BRAVE DEBUG] Exception parsing page_age:', r.page_age, r.title, err);
-      }
+              } catch (err) {
+          // Silently handle date parsing errors
+        }
     }
     return `**${r.title}** (${dateStr})`;
   }));
