@@ -189,14 +189,14 @@ export default function Home() {
   // Main app interface (only shown when user is authenticated AND headlines are loaded)
   console.log('✅ Showing main app interface');
   return (
-    <div className="min-h-screen bg-black">
-      <div className="container mx-auto px-4 py-6 max-w-2xl">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
+    <div className="min-h-screen bg-black flex flex-col">
+      {/* Header */}
+      <header className="px-5 py-6 border-b border-white border-opacity-10 md:px-10 md:py-10 md:pb-8">
+        <div className="max-w-[680px] mx-auto">
+          <h1 className="text-[1.75rem] md:text-4xl font-semibold tracking-tight mb-2 md:mb-3">
             The latest AI news, by AI
           </h1>
-          <p className="text-gray-300 text-lg">
+          <p className="text-base md:text-lg text-white text-opacity-60 font-normal">
             curate, generate, listen
           </p>
           
@@ -219,8 +219,10 @@ export default function Home() {
             </div>
           )}
         </div>
+      </header>
 
-        {/* Main Content */}
+      {/* Main Content */}
+      <main className="flex-1 pb-[100px]">
         {podcastUrl ? (
           <AudioPlayer 
             audioUrl={podcastUrl} 
@@ -228,12 +230,29 @@ export default function Home() {
             selectedCount={selectedHeadlines.length}
           />
         ) : (
-          <div className="space-y-6">
+          <div className="max-w-[680px] mx-auto px-5 py-8 md:px-10 md:py-12">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-sm font-medium uppercase tracking-wider text-white text-opacity-50">
+                Today's Headlines
+              </h2>
+              <span className="text-sm text-white text-opacity-40">
+                {headlines.length} stories
+              </span>
+            </div>
+            
             <HeadlineSelector
               headlines={headlines}
               selectedHeadlines={selectedHeadlines}
               onSelectionChange={setSelectedHeadlines}
             />
+          </div>
+        )}
+      </main>
+
+      {/* Fixed Bottom Actions - only show when not playing podcast */}
+      {!podcastUrl && (
+        <div className="fixed bottom-0 left-0 right-0 bg-black bg-opacity-90 backdrop-blur-[20px] border-t border-white border-opacity-10 p-5 md:p-6 z-[1000]">
+          <div className="max-w-[680px] mx-auto flex justify-center">
             <PodcastGenerator
               selectedHeadlines={selectedHeadlines}
               onGenerate={() => setIsGenerating(true)}
@@ -244,8 +263,8 @@ export default function Home() {
               isGenerating={isGenerating}
             />
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

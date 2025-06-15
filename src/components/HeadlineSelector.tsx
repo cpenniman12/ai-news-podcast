@@ -21,56 +21,60 @@ export function HeadlineSelector({ headlines, selectedHeadlines, onSelectionChan
     }
   };
 
-  const isMaxSelected = selectedHeadlines.length >= 6;
+  // Extract date from headline if it exists (format: "**Title** (Date)")
+  const parseHeadline = (headline: string) => {
+    const match = headline.match(/\*\*(.*?)\*\*\s*\((.*?)\)/);
+    if (match) {
+      return {
+        title: match[1],
+        date: match[2]
+      };
+    }
+    return {
+      title: headline,
+      date: 'Recent'
+    };
+  };
 
   return (
-    <div className="bg-gray-900 rounded-lg shadow-md p-6 border border-gray-800">
-      <div className="mb-6">
-        <p className="text-gray-300 mb-4">
-          Choose up to six stories
-        </p>
-      </div>
-
-      {/* Headlines List */}
-      <div className="max-h-96 overflow-y-auto space-y-3 pr-2 scrollable-list">
-        {headlines.map((headline, index) => {
-          const isSelected = selectedHeadlines.includes(headline);
-          const isDisabled = !isSelected && isMaxSelected;
-          
-          return (
-            <div
-              key={index}
-              className={`border rounded-lg p-4 transition-all cursor-pointer ${
-                isSelected 
-                  ? 'border-blue-500 bg-blue-900 bg-opacity-30' 
-                  : isDisabled
-                  ? 'border-gray-700 bg-gray-800 opacity-50 cursor-not-allowed'
-                  : 'border-gray-700 hover:border-gray-600 hover:bg-gray-800'
-              }`}
-              onClick={() => !isDisabled && handleToggleHeadline(headline)}
-            >
-              <div className="flex items-start space-x-3">
-                <div className="flex-shrink-0 mt-1">
-                  <input
-                    type="checkbox"
-                    checked={isSelected}
-                    onChange={() => !isDisabled && handleToggleHeadline(headline)}
-                    disabled={isDisabled}
-                    className="w-5 h-5 text-blue-600 border-gray-600 bg-gray-700 rounded focus:ring-blue-500 disabled:opacity-50"
-                  />
-                </div>
-                <div className="flex-1">
-                  <p className={`text-sm font-medium leading-relaxed ${
-                    isSelected ? 'text-blue-300' : 'text-white'
-                  }`}>
-                    {headline}
-                  </p>
-                </div>
-              </div>
+    <div className="flex flex-col">
+      {headlines.map((headline, index) => {
+        const isSelected = selectedHeadlines.includes(headline);
+        const isMaxSelected = selectedHeadlines.length >= 6;
+        const isDisabled = !isSelected && isMaxSelected;
+        const { title, date } = parseHeadline(headline);
+        
+        return (
+          <div
+            key={index}
+            className={`
+              py-5 md:py-6 border-b border-white border-opacity-10 cursor-pointer transition-all duration-200 relative select-none
+              ${isSelected ? 'pl-5' : ''}
+              ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}
+              ${!isDisabled ? 'active:opacity-70 md:hover:pl-3' : ''}
+              ${index === headlines.length - 1 ? 'border-b-0' : ''}
+            `}
+            onClick={() => !isDisabled && handleToggleHeadline(headline)}
+          >
+            {/* Selection indicator dot */}
+            {isSelected && (
+              <div className="absolute left-0 top-1/2 transform -translate-y-1/2 w-1 h-1 bg-white rounded-full" />
+            )}
+            
+            <h3 className={`
+              text-[1.0625rem] md:text-[1.125rem] mb-1.5 leading-[1.4] font-medium tracking-tight
+              ${isSelected ? 'text-white' : 'text-white text-opacity-90 md:text-opacity-85'}
+              ${!isDisabled ? 'md:hover:text-white' : ''}
+            `}>
+              {title}
+            </h3>
+            
+            <div className="text-sm text-white text-opacity-50">
+              {date}
             </div>
-          );
-        })}
-      </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
