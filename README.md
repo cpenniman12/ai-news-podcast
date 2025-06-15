@@ -1,32 +1,45 @@
-# 🎙️ AI Podcast Generator
+# 🎙️ AI News Podcast Generator
 
-An intelligent AI-powered application that transforms the latest AI and technology news into personalized podcast episodes. Built with Next.js, this app researches headlines in-depth and generates professional-quality audio content.
+An intelligent AI-powered application that transforms the latest AI and technology news into personalized podcast episodes. Built with Next.js, this app aggregates headlines from multiple sources, researches stories in-depth, and generates professional-quality audio content with a clean, minimal interface.
 
 ## ✨ Features
 
-### 🔍 **Intelligent News Research**
-- **Multi-source headline aggregation** using Brave Search API
-- **Deep research capabilities** that gather 5-8 detailed sources per story
-- **AI-focused content filtering** (OpenAI, Anthropic, Meta, Google, Nvidia, etc.)
-- **Real-time news processing** from TechCrunch, The Verge, Reuters, Bloomberg
+### 🔍 **Multi-Source News Aggregation**
+- **Brave Search API** for comprehensive web search
+- **Perplexity AI** for intelligent content processing  
+- **RSS Feed Integration** from top AI/tech sources:
+  - Andreessen Horowitz (a16z)
+  - Midjourney, Google AI, Meta AI
+  - TechMeme, TechNode, NVIDIA
+  - OpenAI, Waymo, Sequoia Capital
+- **Smart caching** with daily refresh at 6 AM ET
+- **GPT-4o headline curation** for the 20 best stories
 
-### 🎯 **Smart Content Generation**
+### 🎯 **Intelligent Content Generation**
+- **Deep story research** using Brave Search for each selected headline
 - **GPT-4o powered script writing** for professional podcast segments
 - **2-3 minute detailed coverage** per story with context and analysis
-- **Natural conversation flow** with smooth transitions
+- **Natural conversation flow** with smooth transitions between stories
 - **Funding amounts, technical details, and market impact** included
 
 ### 🔊 **High-Quality Audio Production**
 - **OpenAI TTS integration** for natural-sounding voice synthesis
 - **Professional audio output** ready for immediate listening
 - **Multiple story compilation** into cohesive episodes
-- **Downloadable MP3 files** for offline listening
+- **Temporary audio hosting** with 1-hour availability
+
+### 🎨 **Clean, Minimal Interface**
+- **Ultra-minimal design** with no visual clutter
+- **Click-to-select headlines** with subtle dot indicators
+- **Fixed bottom action bar** for podcast generation
+- **Responsive design** optimized for desktop and mobile
+- **Dark theme** with elegant typography
 
 ### 🔐 **Security & Configuration**
 - **Environment-based API key management**
-- **Graceful authentication fallback**
-- **Demo mode** when Supabase isn't configured
-- **Comprehensive error handling**
+- **Demo mode** when authentication isn't configured
+- **Comprehensive error handling** and graceful fallbacks
+- **Supabase integration** for optional user tracking
 
 ## 🚀 Quick Start
 
@@ -37,7 +50,7 @@ An intelligent AI-powered application that transforms the latest AI and technolo
   - [Brave Search API](https://brave.com/search/api/) (Free tier available)
   - [OpenAI API](https://platform.openai.com/api-keys)
   - [Perplexity API](https://docs.perplexity.ai/docs/getting-started)
-  - [Supabase](https://supabase.com/) (Optional, for authentication)
+  - [Supabase](https://supabase.com/) (Optional, for user tracking)
 
 ### Installation
 
@@ -87,27 +100,33 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
 
 ## 📖 How It Works
 
-### 1. **News Research Pipeline**
+### 1. **Multi-Source News Pipeline**
 ```
-Headlines Selection → Brave Search → Multi-source Research → Content Aggregation
+RSS Feeds + Brave Search + Perplexity → GPT-4o Curation → 20 Best Headlines
 ```
 
-### 2. **Script Generation Process**
+### 2. **Story Research Process**
+```
+Selected Headlines → Brave Search Research → Multi-source Data → Context Building
+```
+
+### 3. **Script Generation**
 ```
 Research Data → GPT-4o Processing → Professional Script → Quality Validation
 ```
 
-### 3. **Audio Production**
+### 4. **Audio Production**
 ```
-Script Content → OpenAI TTS → MP3 Generation → Ready for Download
+Script Content → OpenAI TTS → MP3 Generation → Temporary Hosting
 ```
 
 ## 🎯 Usage
 
-1. **Select Headlines**: Choose 2-6 interesting AI/tech news stories
-2. **Generate Podcast**: Click "Generate My Enhanced Podcast"
-3. **Wait for Research**: The app researches each story in detail (~60-90 seconds)
-4. **Listen & Download**: Enjoy your personalized podcast episode
+1. **Browse Headlines**: View the 20 best AI/tech news stories curated daily
+2. **Select Stories**: Click on 1-6 headlines you want to hear about (indicated by white dots)
+3. **Generate Podcast**: Click "Generate Podcast" when ready
+4. **Wait for Research**: The app researches each story in detail (~2-3 minutes)
+5. **Listen**: Enjoy your personalized podcast episode
 
 ## 🏗️ Project Structure
 
@@ -115,27 +134,28 @@ Script Content → OpenAI TTS → MP3 Generation → Ready for Download
 ├── src/
 │   ├── app/
 │   │   ├── api/                    # API routes
-│   │   │   ├── headlines/          # News headline fetching
-│   │   │   ├── generate-detailed-script/  # Enhanced script generation
-│   │   │   ├── generate-audio/     # TTS audio generation
+│   │   │   ├── headlines/          # Multi-source news aggregation
+│   │   │   ├── generate-detailed-script/  # Story research & script generation
+│   │   │   └── generate-audio/     # TTS audio generation
 │   │   └── page.tsx               # Main application page
 │   ├── components/                # React components
-│   ├── utils/                     # Utility functions
-│   │   ├── brave-gpt-news.ts      # News research logic
-│   │   ├── perplexity.ts          # Perplexity API integration
-│   │   └── supabase/              # Authentication setup
+│   │   ├── HeadlineSelector.tsx   # Minimal headline selection UI
+│   │   ├── PodcastGenerator.tsx   # Generation button & progress
+│   │   └── AudioPlayer.tsx        # Clean audio playback interface
+│   └── utils/                     # Utility functions
+│       ├── headlines-client.ts    # Client-side headline fetching
+│       └── supabase/              # Authentication setup
 ├── .env.example                   # Environment variables template
-├── ENVIRONMENT_SETUP.md           # Detailed setup guide
-└── ENHANCED_PODCAST_GUIDE.md      # Feature documentation
+└── README.md                      # This file
 ```
 
 ## 🔧 Development
 
 ### API Endpoints
 
-- `GET /api/headlines` - Fetch latest AI news headlines
-- `POST /api/generate-detailed-script` - Research and generate podcast script
-- `POST /api/generate-audio` - Convert script to audio
+- `GET /api/headlines` - Fetch and curate latest AI news headlines
+- `POST /api/generate-detailed-script` - Research stories and generate podcast script
+- `POST /api/generate-audio` - Convert script to audio using OpenAI TTS
 
 ### Key Technologies
 
@@ -143,13 +163,15 @@ Script Content → OpenAI TTS → MP3 Generation → Ready for Download
 - **Backend**: Next.js API Routes, Node.js
 - **AI Services**: OpenAI GPT-4o, OpenAI TTS, Perplexity AI
 - **Search**: Brave Search API
+- **RSS**: rss-parser for feed aggregation
 - **Authentication**: Supabase (optional)
 
 ## 📊 Performance
 
-- **Research Time**: ~60-90 seconds for detailed multi-source research
+- **Headline Caching**: Daily refresh at 6 AM ET for optimal performance
+- **Story Research**: ~30-60 seconds per story for comprehensive research
 - **Script Generation**: ~15-30 seconds for professional content
-- **Audio Generation**: ~30-45 seconds for high-quality TTS
+- **Audio Generation**: ~30-60 seconds for high-quality TTS
 - **Total Processing**: ~2-3 minutes for complete podcast episode
 
 ## 🔒 Security Features
@@ -159,6 +181,7 @@ Script Content → OpenAI TTS → MP3 Generation → Ready for Download
 - ✅ Rate limiting awareness for external APIs
 - ✅ Graceful error handling and user feedback
 - ✅ No hardcoded credentials in source code
+- ✅ Temporary audio hosting (1-hour expiration)
 
 ## 🎛️ Demo Mode
 
@@ -166,6 +189,15 @@ The app includes a demo mode that works without Supabase authentication:
 - Automatically enabled when Supabase credentials aren't configured
 - Full functionality for podcast generation
 - Perfect for testing and development
+
+## 🎨 UI/UX Features
+
+- **Minimal Design**: Clean interface with no visual clutter
+- **Responsive Layout**: Optimized for desktop and mobile
+- **Dark Theme**: Elegant dark interface with subtle accents
+- **Intuitive Selection**: Click headlines to select (no checkboxes)
+- **Fixed Action Bar**: Always-accessible generation button
+- **Smooth Animations**: Subtle hover effects and transitions
 
 ## 🤝 Contributing
 
@@ -185,50 +217,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [OpenAI](https://openai.com/) for GPT-4o and TTS capabilities
 - [Perplexity AI](https://perplexity.ai/) for intelligent content processing
 - [Supabase](https://supabase.com/) for authentication infrastructure
+- RSS feeds from leading AI/tech organizations
 
 ## 📧 Support
 
-For questions, issues, or feature requests, please open an issue on GitHub or contact the maintainer.
-
-## Enhanced Research Functionality for Podcast Content
-
-This project now includes a powerful research pipeline to improve the factual quality and depth of podcast stories. The new system is implemented in `src/utils/enhanced-research.ts` and provides:
-
-### Key Features
-- **Multiple Targeted Brave Searches:**
-  - 30 searches per run, across 6 strategic AI news categories (Product Releases, Company Moves, Startups, Research, Infrastructure, Regulation)
-- **Content Aggregation & Deduplication:**
-  - Aggregates 100+ news results, deduplicates by URL, title, and content similarity
-  - Prioritizes authoritative sources (e.g., TechCrunch, OpenAI, Bloomberg, arXiv)
-- **Robust Error Handling & Rate Limiting:**
-  - 3-second delay between API calls, comprehensive error handling, and graceful fallbacks
-- **GPT-4o Headline Refinement:**
-  - Uses GPT-4o to select the 25 most significant, diverse, and high-quality headlines for the day
-
-### How This Improves Podcast Content
-- **Much richer, more factual stories:** Each story is now based on 3-5x more research sources
-- **Less model hallucination:** The script generator gets more direct quotes, facts, and context
-- **No context limit issues:** Each story is processed individually, then stitched together for TTS
-
-### Usage
-
-1. **Set your API keys as environment variables:**
-   - `BRAVE_API_KEY` (for Brave Search)
-   - `OPENAI_API_KEY` (for GPT-4o refinement)
-
-2. **Run the enhanced research script:**
-   ```bash
-   # Example (Node.js/TS):
-   npx ts-node src/utils/enhanced-research.ts
-   ```
-   Or import and call `fetchEnhancedTechNewsHeadlines()` in your code.
-
-3. **Integrate with your story generation pipeline:**
-   - Use the output headlines as input for your story scripting and TTS modules.
-
----
-
-For more details, see the code in `src/utils/enhanced-research.ts` or ask Claude Code for help with further automation or integration.
+For questions, issues, or feature requests, please open an issue on GitHub.
 
 ---
 
