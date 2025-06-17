@@ -50,7 +50,7 @@ async function generateTTS(script: string, outPath: string): Promise<void> {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'tts-1',
+          model: 'tts-1-hd',
           input: truncatedScript,
           voice: 'alloy',
           response_format: 'mp3',
