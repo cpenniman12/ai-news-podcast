@@ -49,6 +49,8 @@ async function fetchRecentRssHeadlines(): Promise<string[]> {
   for (const feedUrl of RSS_FEEDS) {
     try {
       const feed = await parser.parseURL(feedUrl);
+      console.log(`📰 [RSS] Processing feed: ${feedUrl} - Found ${feed.items?.length || 0} total items`);
+      
       for (const item of feed.items || []) {
         if (!item.title) continue;
         try {
@@ -62,7 +64,9 @@ async function fetchRecentRssHeadlines(): Promise<string[]> {
           if (pubDate >= threeDaysAgo) {
             // Format: **Headline** (Date)
             const dateStr = pubDate.toISOString().split('T')[0];
-            allHeadlines.push(`**${item.title}** (${dateStr})`);
+            const formattedHeadline = `**${item.title}** (${dateStr})`;
+            allHeadlines.push(formattedHeadline);
+            console.log(`📰 [RSS] Added: ${formattedHeadline}`);
           }
         } catch (itemErr) {
           console.warn(`[RSS DEBUG] Exception parsing item:`, { title: item.title, isoDate: item.isoDate, pubDate: item.pubDate, error: itemErr });
@@ -73,6 +77,7 @@ async function fetchRecentRssHeadlines(): Promise<string[]> {
       console.error(`[RSS] Failed to fetch or parse: ${feedUrl}`, err);
     }
   }
+  console.log(`📰 [RSS] Fetched ${allHeadlines.length} headlines from ${RSS_FEEDS.length} feeds.`);
   return allHeadlines;
 }
 
@@ -161,12 +166,24 @@ async function performSingleBraveSearch(): Promise<SearchResult[]> {
     const results = response.data?.web?.results || [];
     console.log('📰 [API] Single Brave Search Results:', results.length);
     
-    return results.map((item: any) => ({
+    console.log('🔍 [Brave] Raw search results:');
+    results.forEach((item: any, index: number) => {
+      console.log(`${index + 1}. Title: ${item.title || 'No title'}`);
+      console.log(`   URL: ${item.url || 'No URL'}`);
+      console.log(`   Description: ${item.description || 'No description'}`);
+      console.log(`   Age: ${item.age || 'No age'}`);
+      console.log('   ---');
+    });
+    
+    const mappedResults = results.map((item: any) => ({
       title: item.title || '',
       url: item.url || '',
       description: item.description || '',
       page_age: item.age || ''
     }));
+
+    console.log(`📰 [Brave] Mapped ${mappedResults.length} search results.`);
+    return mappedResults;
     
   } catch (error: any) {
     console.error('❌ [API] Single Brave Search Error:', error.message);
@@ -185,110 +202,154 @@ async function performSingleBraveSearch(): Promise<SearchResult[]> {
   }
 }
 
-// Fetch headlines from Perplexity with the new, broader prompt
+// Enhanced Perplexity headlines with multiple targeted searches
 async function fetchPerplexityHeadlines(): Promise<string[]> {
-  try {
-    const prompt = `List a few dozen AI and technology news headlines from the past week.\n\nFocus exclusively on:\n- AI product launches, feature releases, and API updates (e.g., ChatGPT, Claude, Gemini, Copilot, etc.)\n- Major AI company announcements (OpenAI, Anthropic, Google, Meta, Microsoft, Nvidia, AMD, etc.)\n- AI startup funding rounds (Series A and above), acquisitions, partnerships, or key executive hires\n- AI-related venture capital deals, public market moves, or major contracts\n- New AI model releases or significant capability upgrades\n- Developer tool integrations and platform partnerships\n- AI chip/hardware announcements from Nvidia, AMD, Intel, etc.\n\nRequirements:\n- Include stories with specific dates within the past week\n- Each headline must represent a concrete, actionable development\n- Prioritize official announcements over speculation or rumors\n- Include funding amounts, version numbers, or other specific details when available\n- Remove duplicate or very similar stories\n\nFormat: **Headline** (Date)`;
+  const allHeadlines: string[] = [];
+  
+  // Define multiple targeted prompts based on our GPT-4o curation criteria
+  const prompts = [
+    {
+      name: "AI Agents & Developer Tools",
+      prompt: `List specific AI agent and developer tool announcements from the past 7 days. Focus on:
+- Specific companies launching new agentic AI capabilities (OpenAI, Anthropic, Google, etc.)
+- Named AI agent platforms and SDKs with company attribution
+- Specific developer APIs and tools from identifiable companies
+- Named AI coding assistants from specific companies
+Must include: company name, specific product/tool name, launch date. Format: **[Company] [Specific Action/Product]** (Date)`
+    },
+    {
+      name: "AI Model Releases & Capabilities", 
+      prompt: `List specific AI model releases and capability announcements from the past 7 days. Focus on:
+- Named AI model versions from specific companies (OpenAI GPT-X, Anthropic Claude-X, Google Gemini-X, etc.)
+- Specific multimodal AI capabilities from identifiable companies
+- Named performance improvements with company attribution
+- Specific AI reasoning capabilities from named companies
+Must include: company name, specific model name, capability, release date. Format: **[Company] [Specific Model/Capability]** (Date)`
+    },
+    {
+      name: "AI Hardware & Chips",
+      prompt: `List specific AI hardware and chip announcements from the past 7 days. Focus on:
+- Named AI chips from specific companies (Nvidia, AMD, Intel, Apple, etc.)
+- Specific AI server announcements with company names
+- Named hardware partnerships between identifiable companies
+- Specific performance breakthroughs with company attribution
+Must include: company names, specific chip/hardware names, partnerships, announcement date. Format: **[Company] [Specific Hardware/Partnership]** (Date)`
+    },
+    {
+      name: "AI Funding & Strategic Moves",
+      prompt: `List specific AI startup funding and strategic moves from the past 7 days. Focus on:
+- Named AI companies raising specific funding amounts ($50M+)
+- Specific AI acquisitions between named companies
+- Named executives/researchers moving between specific companies
+- Specific corporate AI investments with company names
+Must include: company names, specific amounts, executive names, announcement date. Format: **[Company] [Specific Action/Amount]** (Date)`
+    },
+    {
+      name: "AI Product Launches",
+      prompt: `List specific AI product launches from the past 7 days. Focus on:
+- Named consumer AI products from specific companies
+- Specific enterprise AI platforms from identifiable companies
+- Named AI integrations in products from specific companies (Apple, Google, Microsoft, etc.)
+- Specific AI demos or applications from named companies
+Must include: company name, specific product name, launch date. Format: **[Company] [Specific Product/Integration]** (Date)`
+    }
+  ];
 
-    const response = await axios.post(
-      PPLX_API_URL,
-      {
-        model: 'sonar-pro',
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: 1500,
-        temperature: 0.3,
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${PPLX_API_KEY}`,
-          'Content-Type': 'application/json',
+  // Make sequential calls to Perplexity with delays to respect rate limits
+  for (let i = 0; i < prompts.length; i++) {
+    const { name, prompt } = prompts[i];
+    
+    try {
+      console.log(`🚀 [Perplexity] Fetching ${name} (${i + 1}/${prompts.length})...`);
+      console.log(`📝 [Perplexity] ${name} prompt:`);
+      console.log(prompt);
+
+      const response = await axios.post(
+        PPLX_API_URL,
+        {
+          model: 'sonar-pro',
+          messages: [{ role: 'user', content: prompt }],
+          max_tokens: 800,
+          temperature: 0.3,
         },
-        timeout: 15000,
-      }
-    );
+        {
+          headers: {
+            'Authorization': `Bearer ${PPLX_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          timeout: 15000,
+        }
+      );
 
-    const content = response.data.choices?.[0]?.message?.content || '';
-    const headlines = content
-      .split('\n')
-      .map((line: string) => line.replace(/^\d+\.\s*/, '').trim())
-      .filter(Boolean);
-    return headlines;
-  } catch (error: any) {
-    console.error('[Perplexity] Error fetching headlines:', error.message);
-    return [];
-  }
-}
-
-// Perplexity fallback for when Brave fails
-async function performPerplexityFallback(): Promise<string[]> {
-  try {
-    console.log('🚀 [API] Using Perplexity fallback for headlines...');
-    
-    const prompt = `List 20 recent AI and technology news headlines from the past week. 
-
-Focus on:
-- AI product launches and major feature releases (ChatGPT, Claude, Gemini, etc.)
-- AI company announcements (OpenAI, Anthropic, Google, Meta, Microsoft, Nvidia)
-- AI startup funding rounds, acquisitions, and partnerships
-- New AI model releases and capability upgrades
-- AI hardware and chip announcements
-
-Format: **Headline** (Date)
-Return only the numbered list, no other text.`;
-
-    const response = await axios.post(
-      PPLX_API_URL,
-      {
-        model: 'sonar-pro',
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: 1200,
-        temperature: 0.3,
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${PPLX_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        timeout: 15000,
-      }
-    );
-    
-    console.log('✅ [API] Perplexity fallback successful');
-    
-    const content = response.data.choices?.[0]?.message?.content || '';
-    const headlines = content
-      .split('\n')
-      .map((line: string) => line.replace(/^\d+\.\s*/, '').trim())
-      .filter(Boolean);
+      const content = response.data.choices?.[0]?.message?.content || '';
+      console.log(`📰 [Perplexity] ${name} raw response:`);
+      console.log(content);
       
-    console.log('📰 [API] Perplexity headlines:', headlines.length);
-    return headlines;
-    
-  } catch (error: any) {
-    console.error('❌ [API] Perplexity fallback failed:', error.message);
-    throw new Error('Both Brave and Perplexity failed');
+      const headlines = content
+        .split('\n')
+        .map((line: string) => line.replace(/^\d+\.\s*/, '').trim())
+        .filter(Boolean);
+      
+      console.log(`✅ [Perplexity] ${name}: ${headlines.length} headlines`);
+      allHeadlines.push(...headlines);
+      
+      // Add delay between requests to respect rate limits (except for last request)
+      if (i < prompts.length - 1) {
+        console.log(`⏳ [Perplexity] Waiting 2 seconds before next category...`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+      
+    } catch (error: any) {
+      console.error(`❌ [Perplexity] Error fetching ${name}:`, error.message);
+      // Continue with other categories even if one fails
+    }
   }
+
+  console.log(`📰 [Perplexity] Total fetched: ${allHeadlines.length} headlines from ${prompts.length} categories`);
+  return allHeadlines;
 }
 
 // New function: send all headlines to GPT-4o for curation
-async function curateAllHeadlinesWithGPT(allHeadlines: string[]): Promise<string[]> {
-  const prompt = `You are an expert AI news curator. I have gathered a large set of potential AI and technology news headlines from web search, Perplexity, and top industry RSS feeds. Please review them and select the 20 BEST headlines that match these specific criteria:
+async function curateAllHeadlinesWithGPT(
+  braveHeadlines: string[],
+  perplexityHeadlines: string[],
+  rssHeadlines: string[]
+): Promise<string[]> {
+  const prompt = `You are an expert AI news curator finding the most significant developments that show where AI is heading. Select the 20 BEST headlines that tech enthusiasts and builders would want to read about AI progress and innovation.
 
-FOCUS EXCLUSIVELY ON:
-- AI product launches, feature releases, and API updates (ChatGPT, Claude, Gemini, Copilot, etc.)
-- Major AI company announcements (OpenAI, Anthropic, Google, Meta, Microsoft, Nvidia, AMD, etc.)
-- AI startup funding rounds (Series A and above), acquisitions, partnerships, or key executive hires
-- AI-related venture capital deals, public market moves, or major contracts
-- New AI model releases or significant capability upgrades
-- Developer tool integrations and platform partnerships
-- AI chip/hardware announcements from Nvidia, AMD, Intel, etc.
+PRIORITIZE THESE HIGH-IMPACT STORIES:
+- AI Agent developments - new agentic capabilities, frameworks, or breakthrough demos
+- Notable AI talks/presentations - key industry figures sharing insights (Karpathy, Altman, etc.)
+- Major product launches with clear user impact and new capabilities
+- AI model releases - new versions, capabilities, or performance improvements
+- Strategic partnerships and pivots - companies changing AI direction or major collaborations
+- Significant funding rounds ($50M+) for AI startups building interesting technology
+- AI chip/hardware advances that unlock new possibilities
+- Developer tool launches - new APIs, SDKs, or platforms that enable builders
+- Research breakthroughs that demonstrate new AI capabilities (not limitations/risks)
+- Corporate AI strategy shifts - major investments, acquisitions, team moves
 
-REQUIREMENTS:
-- Include stories with specific dates within the past 2 weeks
-- Each headline must represent a concrete, actionable development
-- Prioritize official announcements over speculation or rumors
-- Include funding amounts, version numbers, or other specific details when available
-- Remove duplicate or very similar stories
+STRICT REQUIREMENTS:
+- MUST mention specific company names, people, or organizations (OpenAI, Google, Meta, Nvidia, etc.)
+- MUST be from the past 7 days maximum
+- REJECT generic headlines like "Top 9 AI Agent Frameworks" or "New Developer APIs" without specific company attribution
+- REJECT broad trend pieces or analysis without concrete company actions
+- Each headline must point to a specific entity taking a specific action
+
+AVOID:
+- Lawsuits, regulatory battles, or legal disputes
+- AI safety/doom content or studies about AI risks/deception
+- European regulatory news
+- Analysis pieces without concrete developments
+- Retrospective investment summaries
+- Generic trend pieces or listicles without specific company names
+
+FOCUS ON:
+- US-based developments primarily
+- Stories from the past week only
+- Concrete announcements with specific company names and details
+- Innovation and capability advances from named entities
+- What builders and developers can actually use or learn from
 
 FORMAT: Return exactly 20 headlines in this format:
 1. **Headline** (Date)
@@ -297,9 +358,27 @@ FORMAT: Return exactly 20 headlines in this format:
 
 HEADLINES TO REVIEW:
 
-${allHeadlines.map((h, i) => `${i + 1}. ${h}`).join('\n')}
+--- BRAVE SEARCH RESULTS (${braveHeadlines.length} items) ---
+${braveHeadlines.map((h, i) => `${i + 1}. ${h}`).join('\n')}
+
+--- PERPLEXITY AI RESULTS (${perplexityHeadlines.length} items) ---
+${perplexityHeadlines.map((h, i) => `${i + 1}. ${h}`).join('\n')}
+
+--- RSS FEED RESULTS (${rssHeadlines.length} items) ---
+${rssHeadlines.map((h, i) => `${i + 1}. ${h}`).join('\n')}
 
 Return only the numbered list of 20 refined headlines with no additional text.`;
+
+  console.log('\n\n---📬 START OF GPT-4o PROMPT---');
+  console.log('---INSTRUCTIONS---');
+  console.log(prompt.split('HEADLINES TO REVIEW:')[0]);
+  console.log(`---BRAVE SEARCH RESULTS (${braveHeadlines.length})---`);
+  console.log(braveHeadlines.join('\n'));
+  console.log(`---PERPLEXITY AI RESULTS (${perplexityHeadlines.length})---`);
+  console.log(perplexityHeadlines.join('\n'));
+  console.log(`---RSS FEED RESULTS (${rssHeadlines.length})---`);
+  console.log(rssHeadlines.join('\n'));
+  console.log('---END OF GPT-4o PROMPT---\n\n');
 
   const response = await axios.post(
     OPENAI_API_URL,
@@ -337,10 +416,12 @@ async function fetchFreshHeadlines(): Promise<{ headlines: string[], strategy: s
     fetchRecentRssHeadlines(),
   ]);
 
+  console.log(`📊 [SOURCES] Fetched ${braveResults.length} results from Brave Search.`);
+  console.log(`📊 [SOURCES] Fetched ${perplexityHeadlines.length} headlines from Perplexity.`);
+  console.log(`📊 [SOURCES] Fetched ${rssHeadlines.length} headlines from RSS Feeds.`);
+
   // Combine all headlines (no deduplication)
-  const allHeadlines: string[] = [];
-  // Brave: convert SearchResult to string, robust date handling
-  allHeadlines.push(...braveResults.map(r => {
+  const braveHeadlinesMapped: string[] = braveResults.map(r => {
     let dateStr = 'Recent';
     if (r.page_age) {
       try {
@@ -348,24 +429,24 @@ async function fetchFreshHeadlines(): Promise<{ headlines: string[], strategy: s
         if (!isNaN(d.getTime())) {
           dateStr = d.toISOString().split('T')[0];
         }
-              } catch (err) {
-          // Silently handle date parsing errors
-        }
+      } catch (err) {
+        // Silently handle date parsing errors
+      }
     }
     return `**${r.title}** (${dateStr})`;
-  }));
-  // Perplexity: already string[]
-  allHeadlines.push(...perplexityHeadlines);
-  // RSS: already string[]
-  allHeadlines.push(...rssHeadlines);
+  });
 
   // Pass all to GPT-4o for curation
-  const curated = await curateAllHeadlinesWithGPT(allHeadlines);
+  const curated = await curateAllHeadlinesWithGPT(braveHeadlinesMapped, perplexityHeadlines, rssHeadlines);
   return { headlines: curated, strategy: 'brave+perplexity+rss' };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   console.log('🔌 [API] Headlines API route called');
+  
+  // Check for force refresh parameter
+  const url = new URL(request.url);
+  const forceRefresh = url.searchParams.get('refresh') === 'true';
   
   // Validate required environment variables at runtime
   if (!BRAVE_API_KEY) {
@@ -385,7 +466,7 @@ export async function GET() {
 
   try {
     // Check if we need to refresh headlines
-    if (!needsRefresh() && headlineCache) {
+    if (!forceRefresh && !needsRefresh() && headlineCache) {
       console.log('✅ [CACHE] Serving cached headlines');
       console.log('📋 [CACHE] Cache age:', Math.round((new Date().getTime() - new Date(headlineCache.lastFetch).getTime()) / (1000 * 60 * 60)) + 'h');
       
@@ -400,6 +481,9 @@ export async function GET() {
 
     // Fetch fresh headlines from all sources
     console.log('🔄 [CACHE] Cache miss or stale, fetching fresh headlines...');
+    if (forceRefresh) {
+      console.log('🔄 [CACHE] Force refresh requested via ?refresh=true parameter');
+    }
     const { headlines, strategy } = await fetchFreshHeadlines();
     
     // Update cache
