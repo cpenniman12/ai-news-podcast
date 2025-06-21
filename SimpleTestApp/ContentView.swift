@@ -292,7 +292,7 @@ class AudioPlayerManager: NSObject, ObservableObject {
             print("🎵 [AUDIO] Audio duration: \(duration) seconds")
             
             if let player = audioPlayer {
-                print("🎵 [AUDIO] Audio format: \(player.format?.description ?? "Unknown")")
+                print("🎵 [AUDIO] Audio format: \(player.format.description)")
                 print("🎵 [AUDIO] Audio channels: \(player.numberOfChannels)")
             }
             
@@ -731,98 +731,150 @@ struct AudioPlayerView: View {
     let onBack: () -> Void
     
     var body: some View {
-        VStack(spacing: 30) {
-            // Header
-            HStack {
-                Button(action: onBack) {
-                    Image(systemName: "chevron.left")
-                        .font(.title2)
-                        .foregroundColor(.white)
+        GeometryReader { geometry in
+            ZStack {
+                // Background with radio image
+                ZStack {
+                    // Gradient background
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            Color(red: 0.2, green: 0.7, blue: 0.4),
+                            Color(red: 0.1, green: 0.5, blue: 0.3)
+                        ]),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    .ignoresSafeArea()
+                    
+                    // Radio image overlay
+                    Image("radio-background")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: min(geometry.size.width * 0.8, 300))
+                        .opacity(0.3)
+                        .offset(y: -50)
                 }
-                Spacer()
-                Text("AI News Podcast")
-                    .font(.headline)
-                    .foregroundColor(.white)
-                Spacer()
-                // Spacer to center the title
-                Color.clear.frame(width: 24)
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 20)
-            
-            Spacer()
-            
-            // Podcast Info
-            VStack(spacing: 12) {
-                Text("Your AI News Podcast")
-                    .font(.title)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.white)
                 
-                Text("\(selectedCount) stories • Generated with AI")
-                    .font(.subheadline)
-                    .foregroundColor(Color.white.opacity(0.6))
-            }
-            
-            // Progress Bar
-            VStack(spacing: 8) {
-                Slider(
-                    value: Binding(
-                        get: { audioPlayer.currentTime },
-                        set: { audioPlayer.seek(to: $0) }
-                    ),
-                    in: 0...max(audioPlayer.duration, 1)
-                )
-                .accentColor(.white)
-                
-                HStack {
-                    Text(timeString(from: audioPlayer.currentTime))
-                        .font(.caption)
-                        .foregroundColor(Color.white.opacity(0.6))
+                VStack(spacing: 0) {
+                    // Header
+                    HStack {
+                        Button(action: onBack) {
+                            Image(systemName: "chevron.left")
+                                .font(.title2)
+                                .foregroundColor(.white)
+                        }
+                        Spacer()
+                        Text("AI News Podcast")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                        Spacer()
+                        // Spacer to center the title
+                        Color.clear.frame(width: 24)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 20)
                     
                     Spacer()
                     
-                    Text(timeString(from: audioPlayer.duration))
-                        .font(.caption)
-                        .foregroundColor(Color.white.opacity(0.6))
-                }
-            }
-            .padding(.horizontal, 20)
-            
-            // Playback Controls
-            HStack(spacing: 40) {
-                Button(action: {
-                    audioPlayer.seek(to: max(0, audioPlayer.currentTime - 15))
-                }) {
-                    Image(systemName: "gobackward.15")
-                        .font(.title)
-                        .foregroundColor(.white)
-                }
-                
-                Button(action: {
-                    if audioPlayer.isPlaying {
-                        audioPlayer.pause()
-                    } else {
-                        audioPlayer.play()
+                    // Main content area
+                    VStack(spacing: 40) {
+                        // Podcast Info
+                        VStack(spacing: 12) {
+                            Text("Your AI News Podcast")
+                                .font(.title)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.white)
+                                .multilineTextAlignment(.center)
+                            
+                            Text("\(selectedCount) stories • Generated with AI")
+                                .font(.subheadline)
+                                .foregroundColor(Color.white.opacity(0.8))
+                        }
+                        .padding(.horizontal, 20)
+                        
+                        // Progress Bar Section
+                        VStack(spacing: 12) {
+                            Slider(
+                                value: Binding(
+                                    get: { audioPlayer.currentTime },
+                                    set: { audioPlayer.seek(to: $0) }
+                                ),
+                                in: 0...max(audioPlayer.duration, 1)
+                            )
+                            .accentColor(.white)
+                            .background(Color.white.opacity(0.3))
+                            
+                            HStack {
+                                Text(timeString(from: audioPlayer.currentTime))
+                                    .font(.caption)
+                                    .foregroundColor(Color.white.opacity(0.8))
+                                
+                                Spacer()
+                                
+                                Text(timeString(from: audioPlayer.duration))
+                                    .font(.caption)
+                                    .foregroundColor(Color.white.opacity(0.8))
+                            }
+                        }
+                        .padding(.horizontal, 40)
+                        
+                        // Playback Controls
+                        HStack(spacing: 50) {
+                            Button(action: {
+                                audioPlayer.seek(to: max(0, audioPlayer.currentTime - 15))
+                            }) {
+                                ZStack {
+                                    Circle()
+                                        .fill(Color.white.opacity(0.2))
+                                        .frame(width: 60, height: 60)
+                                    
+                                    Image(systemName: "gobackward.15")
+                                        .font(.title2)
+                                        .foregroundColor(.white)
+                                }
+                            }
+                            
+                            Button(action: {
+                                if audioPlayer.isPlaying {
+                                    audioPlayer.pause()
+                                } else {
+                                    audioPlayer.play()
+                                }
+                            }) {
+                                ZStack {
+                                    Circle()
+                                        .fill(Color.white)
+                                        .frame(width: 80, height: 80)
+                                    
+                                    Image(systemName: audioPlayer.isPlaying ? "pause.fill" : "play.fill")
+                                        .font(.system(size: 32))
+                                        .foregroundColor(.black)
+                                }
+                            }
+                            
+                            Button(action: {
+                                audioPlayer.seek(to: min(audioPlayer.duration, audioPlayer.currentTime + 30))
+                            }) {
+                                ZStack {
+                                    Circle()
+                                        .fill(Color.white.opacity(0.2))
+                                        .frame(width: 60, height: 60)
+                                    
+                                    Image(systemName: "goforward.30")
+                                        .font(.title2)
+                                        .foregroundColor(.white)
+                                }
+                            }
+                        }
                     }
-                }) {
-                    Image(systemName: audioPlayer.isPlaying ? "pause.fill" : "play.fill")
-                        .font(.system(size: 40))
-                        .foregroundColor(.white)
-                }
-                
-                Button(action: {
-                    audioPlayer.seek(to: min(audioPlayer.duration, audioPlayer.currentTime + 30))
-                }) {
-                    Image(systemName: "goforward.30")
-                        .font(.title)
-                        .foregroundColor(.white)
+                    
+                    Spacer()
+                    
+                    // Bottom padding for safe area
+                    Color.clear.frame(height: 50)
                 }
             }
-            
-            Spacer()
         }
-        .background(Color.black)
         .onAppear {
             // Auto-play when the view appears
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
