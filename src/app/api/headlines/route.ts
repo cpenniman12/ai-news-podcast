@@ -139,69 +139,6 @@ function isEasternDaylightTime(date: Date): boolean {
 // Utility function to add delay for rate limiting
 const delay = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
 
-// Single Brave search with error handling
-async function performSingleBraveSearch(): Promise<SearchResult[]> {
-  try {
-    console.log('🔍 [API] Performing SINGLE Brave Search (rate-limit friendly)...');
-    
-    const response = await axios.get(BRAVE_WEB_API_URL, {
-      params: {
-        q: 'AI news 2025 OpenAI Anthropic Meta Google Nvidia artificial intelligence latest',
-        count: 20, // Get more results in single query
-        offset: 0,
-        safesearch: 'moderate',
-        search_lang: 'en',
-        country: 'US',
-        freshness: 'pw', // Past week
-      },
-      headers: {
-        'X-Subscription-Token': BRAVE_API_KEY,
-        'Accept': 'application/json',
-      },
-      timeout: 10000,
-    });
-
-    console.log('✅ [API] Single Brave Search Status:', response.status);
-    
-    const results = response.data?.web?.results || [];
-    console.log('📰 [API] Single Brave Search Results:', results.length);
-    
-    console.log('🔍 [Brave] Raw search results:');
-    results.forEach((item: any, index: number) => {
-      console.log(`${index + 1}. Title: ${item.title || 'No title'}`);
-      console.log(`   URL: ${item.url || 'No URL'}`);
-      console.log(`   Description: ${item.description || 'No description'}`);
-      console.log(`   Age: ${item.age || 'No age'}`);
-      console.log('   ---');
-    });
-    
-    const mappedResults = results.map((item: any) => ({
-      title: item.title || '',
-      url: item.url || '',
-      description: item.description || '',
-      page_age: item.age || ''
-    }));
-
-    console.log(`📰 [Brave] Mapped ${mappedResults.length} search results.`);
-    return mappedResults;
-    
-  } catch (error: any) {
-    console.error('❌ [API] Single Brave Search Error:', error.message);
-    
-    if (error.response?.data) {
-      console.log('🔍 [API] Error Details:', {
-        status: error.response.status,
-        data: error.response.data,
-        plan: error.response.data?.error?.meta?.plan,
-        rate_limit: error.response.data?.error?.meta?.rate_limit,
-        rate_current: error.response.data?.error?.meta?.rate_current,
-      });
-    }
-    
-    throw error;
-  }
-}
-
 // Enhanced Perplexity headlines with multiple targeted searches
 async function fetchPerplexityHeadlines(): Promise<string[]> {
   const allHeadlines: string[] = [];
@@ -252,6 +189,33 @@ Must include: company names, specific amounts, executive names, announcement dat
 - Named AI integrations in products from specific companies (Apple, Google, Microsoft, etc.)
 - Specific AI demos or applications from named companies
 Must include: company name, specific product name, launch date. Format: **[Company] [Specific Product/Integration]** (Date)`
+    },
+    {
+      name: "AI Research & Breakthroughs",
+      prompt: `List specific AI research breakthroughs and scientific advances from the past 7 days. Focus on:
+- Named research institutions or companies announcing AI breakthroughs
+- Specific AI capabilities or performance improvements from identifiable sources
+- Named researchers or teams making significant AI discoveries
+- Specific AI applications in science, medicine, or technology from known organizations
+Must include: institution/company name, researcher names, specific breakthrough, announcement date. Format: **[Institution/Company] [Specific Breakthrough]** (Date)`
+    },
+    {
+      name: "AI Enterprise & Business",
+      prompt: `List specific AI enterprise and business developments from the past 7 days. Focus on:
+- Named companies deploying AI solutions in their operations
+- Specific AI partnerships between identifiable businesses
+- Named enterprises launching AI-powered services or products
+- Specific AI adoption announcements from known corporations
+Must include: company names, specific AI implementations, partnership details, announcement date. Format: **[Company] [Specific AI Implementation]** (Date)`
+    },
+    {
+      name: "AI Talent & Leadership",
+      prompt: `List specific AI talent and leadership moves from the past 7 days. Focus on:
+- Named executives joining or leaving specific AI companies
+- Specific researchers moving between identifiable institutions
+- Named AI leaders making strategic announcements
+- Specific hiring or team formation announcements from known companies
+Must include: person names, company names, specific roles, announcement date. Format: **[Person] joins/leaves [Company] as [Role]** (Date)`
     }
   ];
 
@@ -309,100 +273,231 @@ Must include: company name, specific product name, launch date. Format: **[Compa
   return allHeadlines;
 }
 
-// New function: send all headlines to GPT-4o for curation
-async function curateAllHeadlinesWithGPT(
-  braveHeadlines: string[],
-  perplexityHeadlines: string[],
-  rssHeadlines: string[]
-): Promise<string[]> {
-  const prompt = `You are an expert AI news curator finding the most significant developments that show where AI is heading. Select the 20 BEST headlines that tech enthusiasts and builders would want to read about AI progress and innovation.
-
-PRIORITIZE THESE HIGH-IMPACT STORIES:
-- AI Agent developments - new agentic capabilities, frameworks, or breakthrough demos
-- Notable AI talks/presentations - key industry figures sharing insights (Karpathy, Altman, etc.)
-- Major product launches with clear user impact and new capabilities
-- AI model releases - new versions, capabilities, or performance improvements
-- Strategic partnerships and pivots - companies changing AI direction or major collaborations
-- Significant funding rounds ($50M+) for AI startups building interesting technology
-- AI chip/hardware advances that unlock new possibilities
-- Developer tool launches - new APIs, SDKs, or platforms that enable builders
-- Research breakthroughs that demonstrate new AI capabilities (not limitations/risks)
-- Corporate AI strategy shifts - major investments, acquisitions, team moves
-
-STRICT REQUIREMENTS:
-- MUST mention specific company names, people, or organizations (OpenAI, Google, Meta, Nvidia, etc.)
-- MUST be from the past 7 days maximum
-- REJECT generic headlines like "Top 9 AI Agent Frameworks" or "New Developer APIs" without specific company attribution
-- REJECT broad trend pieces or analysis without concrete company actions
-- Each headline must point to a specific entity taking a specific action
-
-AVOID:
-- Lawsuits, regulatory battles, or legal disputes
-- AI safety/doom content or studies about AI risks/deception
-- European regulatory news
-- Analysis pieces without concrete developments
-- Retrospective investment summaries
-- Generic trend pieces or listicles without specific company names
-
-FOCUS ON:
-- US-based developments primarily
-- Stories from the past week only
-- Concrete announcements with specific company names and details
-- Innovation and capability advances from named entities
-- What builders and developers can actually use or learn from
-
-FORMAT: Return exactly 20 headlines in this format:
-1. **Headline** (Date)
-2. **Headline** (Date)
-...etc
-
-HEADLINES TO REVIEW:
-
---- BRAVE SEARCH RESULTS (${braveHeadlines.length} items) ---
-${braveHeadlines.map((h, i) => `${i + 1}. ${h}`).join('\n')}
-
---- PERPLEXITY AI RESULTS (${perplexityHeadlines.length} items) ---
-${perplexityHeadlines.map((h, i) => `${i + 1}. ${h}`).join('\n')}
-
---- RSS FEED RESULTS (${rssHeadlines.length} items) ---
-${rssHeadlines.map((h, i) => `${i + 1}. ${h}`).join('\n')}
-
-Return only the numbered list of 20 refined headlines with no additional text.`;
-
-  console.log('\n\n---📬 START OF GPT-4o PROMPT---');
-  console.log('---INSTRUCTIONS---');
-  console.log(prompt.split('HEADLINES TO REVIEW:')[0]);
-  console.log(`---BRAVE SEARCH RESULTS (${braveHeadlines.length})---`);
-  console.log(braveHeadlines.join('\n'));
-  console.log(`---PERPLEXITY AI RESULTS (${perplexityHeadlines.length})---`);
-  console.log(perplexityHeadlines.join('\n'));
-  console.log(`---RSS FEED RESULTS (${rssHeadlines.length})---`);
-  console.log(rssHeadlines.join('\n'));
-  console.log('---END OF GPT-4o PROMPT---\n\n');
-
-  const response = await axios.post(
-    OPENAI_API_URL,
+// Enhanced Brave search with multiple targeted queries
+async function performMultipleBraveSearches(): Promise<SearchResult[]> {
+  const allResults: SearchResult[] = [];
+  
+  const searchQueries = [
     {
-      model: 'gpt-4o',
-      messages: [
-        { role: 'user', content: prompt }
-      ],
-      max_tokens: 1500,
-      temperature: 0.3,
+      name: "AI Models & Releases",
+      query: "OpenAI GPT Claude Anthropic Gemini Google AI model release 2025",
+      count: 15
     },
     {
-      headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      timeout: 20000,
+      name: "AI Hardware & Chips", 
+      query: "Nvidia AMD Intel AI chips GPU hardware announcement 2025",
+      count: 15
+    },
+    {
+      name: "AI Startups & Funding",
+      query: "AI startup funding Series A B C venture capital 2025",
+      count: 15
+    },
+    {
+      name: "AI Products & Integrations",
+      query: "Apple Google Microsoft AI product launch integration 2025",
+      count: 15
+    },
+    {
+      name: "AI Agents & Tools",
+      query: "AI agent autonomous coding assistant developer tools 2025",
+      count: 15
     }
-  );
-  const content = response.data.choices?.[0]?.message?.content || '';
-  return content
-    .split('\n')
-    .map((line: string) => line.replace(/^\d+\.\s*/, '').trim())
-    .filter(Boolean);
+  ];
+
+  for (let i = 0; i < searchQueries.length; i++) {
+    const { name, query, count } = searchQueries[i];
+    
+    try {
+      console.log(`🔍 [Brave] Performing ${name} search (${i + 1}/${searchQueries.length})...`);
+      console.log(`🎯 [Brave] Query: ${query}`);
+      
+      const response = await axios.get(BRAVE_WEB_API_URL, {
+        params: {
+          q: query,
+          count: count,
+          offset: 0,
+          safesearch: 'moderate',
+          search_lang: 'en',
+          country: 'US',
+          freshness: 'pw', // Past week
+        },
+        headers: {
+          'X-Subscription-Token': BRAVE_API_KEY,
+          'Accept': 'application/json',
+        },
+        timeout: 10000,
+      });
+
+      console.log(`✅ [Brave] ${name} search status: ${response.status}`);
+      
+      const results = response.data?.web?.results || [];
+      console.log(`📰 [Brave] ${name} found ${results.length} results`);
+      
+      console.log(`🔍 [Brave] ${name} raw search results:`);
+      results.forEach((item: any, index: number) => {
+        console.log(`${index + 1}. Title: ${item.title || 'No title'}`);
+        console.log(`   URL: ${item.url || 'No URL'}`);
+        console.log(`   Description: ${item.description || 'No description'}`);
+        console.log(`   Age: ${item.age || 'No age'}`);
+        console.log('   ---');
+      });
+      
+      const mappedResults = results.map((item: any) => ({
+        title: item.title || '',
+        url: item.url || '',
+        description: item.description || '',
+        page_age: item.age || ''
+      }));
+
+      allResults.push(...mappedResults);
+      
+      // Add delay between searches to respect rate limits (except for last search)
+      if (i < searchQueries.length - 1) {
+        console.log(`⏳ [Brave] Waiting 3 seconds before next search...`);
+        await new Promise(resolve => setTimeout(resolve, 3000));
+      }
+      
+    } catch (error: any) {
+      console.error(`❌ [Brave] Error in ${name} search:`, error.message);
+      
+      if (error.response?.data) {
+        console.log(`🔍 [Brave] ${name} error details:`, {
+          status: error.response.status,
+          data: error.response.data,
+          plan: error.response.data?.error?.meta?.plan,
+          rate_limit: error.response.data?.error?.meta?.rate_limit,
+          rate_current: error.response.data?.error?.meta?.rate_current,
+        });
+      }
+      // Continue with other searches even if one fails
+    }
+  }
+  
+  console.log(`📰 [Brave] Total fetched: ${allResults.length} results from ${searchQueries.length} searches`);
+  return allResults;
+}
+
+// New function: send all headlines to GPT-4o for curation
+async function curateWithGPT(allHeadlines: string[]): Promise<string[]> {
+  const prompt = `You are an expert AI news curator for a weekly podcast about artificial intelligence developments that builders and entrepreneurs care about.
+
+CONTEXT: You will receive ~100-200 headlines from multiple sources (Perplexity AI searches, Brave web searches, RSS feeds). Your job is to select the 20 BEST headlines that represent the most important, discussion-worthy AI developments from the past week.
+
+TARGET AUDIENCE: AI builders, entrepreneurs, developers, and tech leaders who want to stay current on:
+- New AI capabilities they can use in their products
+- Strategic moves by major AI companies
+- Breakthrough research with practical implications
+- Funding and business developments in AI
+- New tools and platforms for AI development
+
+STRICT REQUIREMENTS FOR SELECTION:
+1. MUST point to a SPECIFIC company, person, or organization taking a SPECIFIC action
+2. MUST be from the past 7 days (reject anything older)
+3. MUST have concrete business or technical impact
+4. REJECT generic trend pieces, listicles, or "Top X" articles
+5. REJECT regulatory battles, lawsuits, or AI safety controversies
+6. REJECT vague headlines without clear company attribution
+7. PRIORITIZE US-based companies and developments
+8. FOCUS on innovation, progress, and what builders can actually use
+
+PRIORITIZE THESE CATEGORIES (in order):
+1. **AI Model Releases & Capabilities** - New models, performance improvements, multimodal features
+2. **AI Agent & Developer Tools** - New platforms, APIs, coding assistants, agent frameworks
+3. **AI Product Launches** - Consumer/enterprise products with AI features
+4. **AI Hardware & Infrastructure** - Chips, servers, performance breakthroughs
+5. **Strategic Business Moves** - Major funding, acquisitions, partnerships, executive moves
+6. **Research Breakthroughs** - Scientific advances with clear practical applications
+7. **AI Integrations** - Major platforms adding AI capabilities
+8. **Enterprise AI Adoption** - Large companies deploying AI solutions
+
+QUALITY FILTERS:
+- Headlines must be specific and actionable
+- Must mention real company/product names
+- Must indicate recent timing (this week)
+- Must have clear relevance to AI builders/entrepreneurs
+- Avoid duplicates or very similar stories
+- Prefer stories with concrete details over vague announcements
+
+DIVERSITY REQUIREMENTS:
+- Include stories from different companies (not all OpenAI/Google)
+- Mix of different story types (models, tools, funding, products)
+- Balance between big tech and startups
+- Include hardware and software developments
+
+OUTPUT FORMAT:
+Return exactly 20 headlines, each on a new line, ranked by importance/relevance. Keep original headline text but ensure each one meets the strict requirements above.
+
+HEADLINES TO CURATE:
+${allHeadlines.join('\n')}
+
+Please select and return the 20 BEST headlines that meet all the above criteria, ranked by importance for AI builders and entrepreneurs:`;
+
+  try {
+    console.log('🤖 [GPT] Starting headline curation...');
+    console.log(`📊 [GPT] Processing ${allHeadlines.length} total headlines`);
+    console.log('📝 [GPT] Full curation prompt:');
+    console.log(prompt);
+    
+    const response = await axios.post(
+      'https://api.openai.com/v1/chat/completions',
+      {
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert AI news curator with deep knowledge of the AI industry, startup ecosystem, and what matters to builders and entrepreneurs.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        max_tokens: 2000,
+        temperature: 0.3,
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        timeout: 30000,
+      }
+    );
+
+    const curatedContent = response.data.choices?.[0]?.message?.content || '';
+    console.log('📰 [GPT] Raw curated response:');
+    console.log(curatedContent);
+    
+    // Parse the curated headlines
+    const curatedHeadlines = curatedContent
+      .split('\n')
+      .map((line: string) => line.replace(/^\d+\.\s*/, '').trim())
+      .filter(Boolean)
+      .slice(0, 20); // Ensure exactly 20 headlines
+
+    console.log(`✅ [GPT] Curated ${curatedHeadlines.length} final headlines`);
+    console.log('🎯 [GPT] Final curated headlines:');
+    curatedHeadlines.forEach((headline: string, index: number) => {
+      console.log(`${index + 1}. ${headline}`);
+    });
+    
+    return curatedHeadlines;
+    
+  } catch (error: any) {
+    console.error('❌ [GPT] Curation error:', error.message);
+    
+    if (error.response?.data) {
+      console.log('🔍 [GPT] Error details:', {
+        status: error.response.status,
+        error: error.response.data.error,
+      });
+    }
+    
+    // Fallback: return first 20 headlines if GPT fails
+    console.log('🔄 [GPT] Falling back to first 20 headlines...');
+    return allHeadlines.slice(0, 20);
+  }
 }
 
 // Updated fetchFreshHeadlines: fetch all sources in parallel, combine, curate
@@ -411,7 +506,7 @@ async function fetchFreshHeadlines(): Promise<{ headlines: string[], strategy: s
 
   // Fetch all sources in parallel
   const [braveResults, perplexityHeadlines, rssHeadlines] = await Promise.all([
-    performSingleBraveSearch(),
+    performMultipleBraveSearches(),
     fetchPerplexityHeadlines(),
     fetchRecentRssHeadlines(),
   ]);
@@ -437,7 +532,7 @@ async function fetchFreshHeadlines(): Promise<{ headlines: string[], strategy: s
   });
 
   // Pass all to GPT-4o for curation
-  const curated = await curateAllHeadlinesWithGPT(braveHeadlinesMapped, perplexityHeadlines, rssHeadlines);
+  const curated = await curateWithGPT(braveHeadlinesMapped.concat(perplexityHeadlines, rssHeadlines));
   return { headlines: curated, strategy: 'brave+perplexity+rss' };
 }
 
