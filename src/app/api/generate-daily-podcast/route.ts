@@ -105,7 +105,7 @@ Select the 2 BEST stories for today's podcast:`;
     }
 
     console.log('✅ [Daily] Selected 2 top stories:');
-    selectedHeadlines.forEach((headline, i) => {
+    selectedHeadlines.forEach((headline: string, i: number) => {
       console.log(`  ${i + 1}. ${headline}`);
     });
 
