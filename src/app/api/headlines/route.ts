@@ -273,6 +273,84 @@ Must include: person names, company names, specific roles, announcement date. Fo
   return allHeadlines;
 }
 
+// Filter out non-news sources and listicles
+function isNewsArticle(result: SearchResult): boolean {
+  const url = result.url.toLowerCase();
+  const title = result.title.toLowerCase();
+  const description = result.description?.toLowerCase() || '';
+  
+  // Exclude non-news sources
+  const excludedDomains = [
+    'wikipedia.org',
+    'reddit.com',
+    'stackoverflow.com',
+    'github.com',
+    'quora.com',
+    'medium.com/tag',  // Generic Medium tags
+    'youtube.com',
+    'linkedin.com/pulse',
+  ];
+  
+  if (excludedDomains.some(domain => url.includes(domain))) {
+    console.log(`🚫 [FILTER] Excluded non-news domain: ${result.title}`);
+    return false;
+  }
+  
+  // Exclude listicles and comparison articles (not news)
+  const listiclePatterns = [
+    /^\d+\s+(best|top|ways|alternatives|tools|tips|reasons)/i,
+    /best\s+\w+\s+for/i,
+    /top\s+\d+/i,
+    /alternatives\s+to/i,
+    /\d+\s+things\s+you/i,
+    /how\s+to\s+choose/i,
+    /complete\s+guide\s+to/i,
+    /everything\s+you\s+need\s+to\s+know/i,
+    /what\s+is\s+\w+\?/i,  // "What is X?" explainer articles
+  ];
+  
+  if (listiclePatterns.some(pattern => pattern.test(title))) {
+    console.log(`🚫 [FILTER] Excluded listicle/guide: ${result.title}`);
+    return false;
+  }
+  
+  // Exclude generic "how to" and tutorial content
+  if (title.includes('how to') || title.includes('tutorial') || title.includes('guide to')) {
+    console.log(`🚫 [FILTER] Excluded tutorial/guide: ${result.title}`);
+    return false;
+  }
+  
+  // Require news indicators in title or description
+  const newsIndicators = [
+    'announces',
+    'launches',
+    'releases',
+    'unveils',
+    'introduces',
+    'acquires',
+    'raises',
+    'funding',
+    'investment',
+    'partnership',
+    'joins',
+    'appoints',
+    'named',
+    'report:',
+    'breaking:',
+  ];
+  
+  const hasNewsIndicator = newsIndicators.some(indicator => 
+    title.includes(indicator) || description.includes(indicator)
+  );
+  
+  if (!hasNewsIndicator) {
+    console.log(`🚫 [FILTER] No news indicators found: ${result.title}`);
+    return false;
+  }
+  
+  return true;
+}
+
 // Enhanced Brave search with multiple targeted queries
 async function performMultipleBraveSearches(): Promise<SearchResult[]> {
   const allResults: SearchResult[] = [];
@@ -280,7 +358,7 @@ async function performMultipleBraveSearches(): Promise<SearchResult[]> {
   const searchQueries = [
     {
       name: "AI Models & Releases",
-      query: "OpenAI GPT Claude Anthropic Gemini Google AI model release 2025",
+      query: "OpenAI GPT Claude Anthropic Gemini Google AI model release announcement 2025",
       count: 15
     },
     {
@@ -290,17 +368,17 @@ async function performMultipleBraveSearches(): Promise<SearchResult[]> {
     },
     {
       name: "AI Startups & Funding",
-      query: "AI startup funding Series A B C venture capital 2025",
+      query: "AI startup funding Series A B C venture capital raises 2025",
       count: 15
     },
     {
       name: "AI Products & Integrations",
-      query: "Apple Google Microsoft AI product launch integration 2025",
+      query: "Apple Google Microsoft AI product launch integration announces 2025",
       count: 15
     },
     {
       name: "AI Agents & Tools",
-      query: "AI agent autonomous coding assistant developer tools 2025",
+      query: "AI agent autonomous coding assistant developer tools launch 2025",
       count: 15
     }
   ];
@@ -350,7 +428,11 @@ async function performMultipleBraveSearches(): Promise<SearchResult[]> {
         page_age: item.age || ''
       }));
 
-      allResults.push(...mappedResults);
+      // Filter out non-news articles before adding to results
+      const newsArticles = mappedResults.filter(isNewsArticle);
+      console.log(`🔍 [BRAVE] ${name} filtered: ${mappedResults.length} → ${newsArticles.length} news articles`);
+      
+      allResults.push(...newsArticles);
       
       // Add delay between searches to respect rate limits (except for last search)
       if (i < searchQueries.length - 1) {
@@ -382,7 +464,7 @@ async function performMultipleBraveSearches(): Promise<SearchResult[]> {
 async function curateWithGPT(allHeadlines: string[]): Promise<string[]> {
   const prompt = `You are an expert AI news curator for a weekly podcast about artificial intelligence developments that builders and entrepreneurs care about.
 
-CONTEXT: You will receive ~100-200 headlines from multiple sources (Perplexity AI searches, Brave web searches, RSS feeds). Your job is to select the 20 BEST headlines that represent the most important, discussion-worthy AI developments from the past week.
+CONTEXT: You will receive ~100-200 headlines from multiple sources (Perplexity AI searches, Brave web searches, RSS feeds). Your job is to select the 10 BEST headlines that represent the most important, newsworthy AI developments from the past week.
 
 TARGET AUDIENCE: AI builders, entrepreneurs, developers, and tech leaders who want to stay current on:
 - New AI capabilities they can use in their products
@@ -392,14 +474,34 @@ TARGET AUDIENCE: AI builders, entrepreneurs, developers, and tech leaders who wa
 - New tools and platforms for AI development
 
 STRICT REQUIREMENTS FOR SELECTION:
-1. MUST point to a SPECIFIC company, person, or organization taking a SPECIFIC action
-2. MUST be from the past 7 days (reject anything older)
-3. MUST have concrete business or technical impact
-4. REJECT generic trend pieces, listicles, or "Top X" articles
-5. REJECT regulatory battles, lawsuits, or AI safety controversies
-6. REJECT vague headlines without clear company attribution
-7. PRIORITIZE US-based companies and developments
-8. FOCUS on innovation, progress, and what builders can actually use
+1. MUST be an ACTUAL NEWS STORY - a specific event that happened, was announced, or was released
+2. MUST point to a SPECIFIC company, person, or organization taking a SPECIFIC action
+3. MUST be from the past 7 days (reject anything older)
+4. MUST have concrete business or technical impact
+5. ABSOLUTELY REJECT:
+   - Wikipedia articles (not news!)
+   - Listicles like "Best AI models for coding" or "Top 10 AI tools"
+   - Comparison articles like "20 alternatives to ChatGPT"
+   - Generic guides, tutorials, or "how to" articles
+   - Explainer pieces like "What is Claude AI?"
+   - Regulatory battles, lawsuits, or AI safety controversies
+   - Vague headlines without clear company attribution
+6. PRIORITIZE US-based companies and developments
+7. FOCUS on innovation, progress, and what builders can actually use
+
+EXAMPLES OF GOOD NEWS HEADLINES (include these types):
+- "Nvidia to invest up to $100B in OpenAI" - specific companies, specific action, specific amount
+- "Claude Sonnet 4.5 released" - specific product, specific version, specific action
+- "Google announces Gemini 2.0 with enhanced reasoning" - company, product, capability
+- "Anthropic raises $500M Series D led by Menlo Ventures" - company, amount, investor
+
+EXAMPLES OF BAD HEADLINES TO REJECT:
+- "Best AI models for coding" - listicle, not news
+- "20 alternatives to ChatGPT" - comparison article, not news  
+- "What is Claude AI?" - explainer, not news
+- "How to use AI in your startup" - tutorial, not news
+- "Wikipedia: Artificial intelligence" - Wikipedia, not news
+- "Complete guide to AI agents" - guide, not news
 
 PRIORITIZE THESE CATEGORIES (in order):
 1. **AI Model Releases & Capabilities** - New models, performance improvements, multimodal features
@@ -412,12 +514,13 @@ PRIORITIZE THESE CATEGORIES (in order):
 8. **Enterprise AI Adoption** - Large companies deploying AI solutions
 
 QUALITY FILTERS:
-- Headlines must be specific and actionable
-- Must mention real company/product names
+- Headlines must be specific news announcements, not educational content
+- Must mention real company/product names and specific actions
 - Must indicate recent timing (this week)
 - Must have clear relevance to AI builders/entrepreneurs
 - Avoid duplicates or very similar stories
 - Prefer stories with concrete details over vague announcements
+- ZERO tolerance for listicles, guides, tutorials, or Wikipedia articles
 
 DIVERSITY REQUIREMENTS:
 - Include stories from different companies (not all OpenAI/Google)
@@ -426,12 +529,12 @@ DIVERSITY REQUIREMENTS:
 - Include hardware and software developments
 
 OUTPUT FORMAT:
-Return exactly 20 headlines, each on a new line, ranked by importance/relevance. Keep original headline text but ensure each one meets the strict requirements above.
+Return exactly 10 headlines, each on a new line, ranked by importance/relevance. Keep original headline text but ensure each one is an ACTUAL NEWS STORY that meets the strict requirements above.
 
 HEADLINES TO CURATE:
 ${allHeadlines.join('\n')}
 
-Please select and return the 20 BEST headlines that meet all the above criteria, ranked by importance for AI builders and entrepreneurs:`;
+Please select and return the 10 BEST NEWS HEADLINES that meet all the above criteria, ranked by importance for AI builders and entrepreneurs. Remember: ONLY actual news stories, NO listicles, NO guides, NO Wikipedia, NO comparison articles.`;
 
   try {
     console.log('🤖 [GPT] Starting headline curation...');
@@ -446,15 +549,15 @@ Please select and return the 20 BEST headlines that meet all the above criteria,
         messages: [
           {
             role: 'system',
-            content: 'You are an expert AI news curator with deep knowledge of the AI industry, startup ecosystem, and what matters to builders and entrepreneurs.'
+            content: 'You are an expert AI news curator with deep knowledge of the AI industry, startup ecosystem, and what matters to builders and entrepreneurs. You have ZERO tolerance for non-news content like listicles, guides, tutorials, or Wikipedia articles. You ONLY select actual news stories about specific events, announcements, releases, or developments.'
           },
           {
             role: 'user',
             content: prompt
           }
         ],
-        max_tokens: 2000,
-        temperature: 0.3,
+        max_tokens: 1500,
+        temperature: 0.2,
       },
       {
         headers: {
@@ -474,7 +577,7 @@ Please select and return the 20 BEST headlines that meet all the above criteria,
       .split('\n')
       .map((line: string) => line.replace(/^\d+\.\s*/, '').trim())
       .filter(Boolean)
-      .slice(0, 20); // Ensure exactly 20 headlines
+      .slice(0, 10); // Ensure exactly 10 headlines
 
     console.log(`✅ [GPT] Curated ${curatedHeadlines.length} final headlines`);
     console.log('🎯 [GPT] Final curated headlines:');
@@ -494,9 +597,9 @@ Please select and return the 20 BEST headlines that meet all the above criteria,
       });
     }
     
-    // Fallback: return first 20 headlines if GPT fails
-    console.log('🔄 [GPT] Falling back to first 20 headlines...');
-    return allHeadlines.slice(0, 20);
+    // Fallback: return first 10 headlines if GPT fails
+    console.log('🔄 [GPT] Falling back to first 10 headlines...');
+    return allHeadlines.slice(0, 10);
   }
 }
 

@@ -1,0 +1,62 @@
+{
+  "images" : [
+    {
+      "filename" : "dbbefdc5-d8ec-4aa5-8dfd-ae068da55d81-3.png",
+      "idiom" : "iphone",
+      "scale" : "2x",
+      "size" : "20x20"
+    },
+    {
+      "filename" : "21891010-3d34-485c-9491-f50a0dbb6c24.png",
+      "idiom" : "iphone",
+      "scale" : "3x",
+      "size" : "20x20"
+    },
+    {
+      "filename" : "dbbefdc5-d8ec-4aa5-8dfd-ae068da55d81-4.png",
+      "idiom" : "iphone",
+      "scale" : "2x",
+      "size" : "29x29"
+    },
+    {
+      "filename" : "dbbefdc5-d8ec-4aa5-8dfd-ae068da55d81-5.png",
+      "idiom" : "iphone",
+      "scale" : "3x",
+      "size" : "29x29"
+    },
+    {
+      "filename" : "dbbefdc5-d8ec-4aa5-8dfd-ae068da55d81-6.png",
+      "idiom" : "iphone",
+      "scale" : "2x",
+      "size" : "40x40"
+    },
+    {
+      "filename" : "dbbefdc5-d8ec-4aa5-8dfd-ae068da55d81.png",
+      "idiom" : "iphone",
+      "scale" : "3x",
+      "size" : "40x40"
+    },
+    {
+      "filename" : "dbbefdc5-d8ec-4aa5-8dfd-ae068da55d81-2.png",
+      "idiom" : "iphone",
+      "scale" : "2x",
+      "size" : "60x60"
+    },
+    {
+      "filename" : "dbbefdc5-d8ec-4aa5-8dfd-ae068da55d81-7.png",
+      "idiom" : "iphone",
+      "scale" : "3x",
+      "size" : "60x60"
+    },
+    {
+      "filename" : "dbbefdc5-d8ec-4aa5-8dfd-ae068da55d81-1.png",
+      "idiom" : "ios-marketing",
+      "scale" : "1x",
+      "size" : "1024x1024"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}
