@@ -156,6 +156,13 @@ async function fetchPerplexityHeadlines(): Promise<string[]> {
 - Named AI agent platforms and SDKs with company attribution
 - Specific developer APIs and tools from identifiable companies
 - Named AI coding assistants from specific companies
+
+IMPORTANT - ONLY include actual NEWS EVENTS (announcements, launches, releases). DO NOT include:
+- Wikipedia pages or encyclopedia entries
+- Listicles like "Best X", "Top 10 Y", "X alternatives to Y"
+- How-to guides, tutorials, or explainer articles
+- Comparison articles or reviews
+
 Must include: company name, specific product/tool name, launch date. Format: **[Company] [Specific Action/Product]** (Date)`
     },
     {
@@ -165,6 +172,13 @@ Must include: company name, specific product/tool name, launch date. Format: **[
 - Specific multimodal AI capabilities from identifiable companies
 - Named performance improvements with company attribution
 - Specific AI reasoning capabilities from named companies
+
+IMPORTANT - ONLY include actual NEWS EVENTS (announcements, launches, releases). DO NOT include:
+- Wikipedia pages or encyclopedia entries
+- Listicles like "Best X", "Top 10 Y", "X alternatives to Y"
+- How-to guides, tutorials, or explainer articles
+- Comparison articles or reviews
+
 Must include: company name, specific model name, capability, release date. Format: **[Company] [Specific Model/Capability]** (Date)`
     },
     {
@@ -174,6 +188,13 @@ Must include: company name, specific model name, capability, release date. Forma
 - Specific AI server announcements with company names
 - Named hardware partnerships between identifiable companies
 - Specific performance breakthroughs with company attribution
+
+IMPORTANT - ONLY include actual NEWS EVENTS (announcements, launches, releases). DO NOT include:
+- Wikipedia pages or encyclopedia entries
+- Listicles like "Best X", "Top 10 Y", "X alternatives to Y"
+- How-to guides, tutorials, or explainer articles
+- Comparison articles or reviews
+
 Must include: company names, specific chip/hardware names, partnerships, announcement date. Format: **[Company] [Specific Hardware/Partnership]** (Date)`
     },
     {
@@ -183,6 +204,13 @@ Must include: company names, specific chip/hardware names, partnerships, announc
 - Specific AI acquisitions between named companies
 - Named executives/researchers moving between specific companies
 - Specific corporate AI investments with company names
+
+IMPORTANT - ONLY include actual NEWS EVENTS (announcements, launches, releases). DO NOT include:
+- Wikipedia pages or encyclopedia entries
+- Listicles like "Best X", "Top 10 Y", "X alternatives to Y"
+- How-to guides, tutorials, or explainer articles
+- Comparison articles or reviews
+
 Must include: company names, specific amounts, executive names, announcement date. Format: **[Company] [Specific Action/Amount]** (Date)`
     },
     {
@@ -192,6 +220,13 @@ Must include: company names, specific amounts, executive names, announcement dat
 - Specific enterprise AI platforms from identifiable companies
 - Named AI integrations in products from specific companies (Apple, Google, Microsoft, etc.)
 - Specific AI demos or applications from named companies
+
+IMPORTANT - ONLY include actual NEWS EVENTS (announcements, launches, releases). DO NOT include:
+- Wikipedia pages or encyclopedia entries
+- Listicles like "Best X", "Top 10 Y", "X alternatives to Y"
+- How-to guides, tutorials, or explainer articles
+- Comparison articles or reviews
+
 Must include: company name, specific product name, launch date. Format: **[Company] [Specific Product/Integration]** (Date)`
     },
     {
@@ -201,6 +236,13 @@ Must include: company name, specific product name, launch date. Format: **[Compa
 - Specific AI capabilities or performance improvements from identifiable sources
 - Named researchers or teams making significant AI discoveries
 - Specific AI applications in science, medicine, or technology from known organizations
+
+IMPORTANT - ONLY include actual NEWS EVENTS (announcements, launches, releases). DO NOT include:
+- Wikipedia pages or encyclopedia entries
+- Listicles like "Best X", "Top 10 Y", "X alternatives to Y"
+- How-to guides, tutorials, or explainer articles
+- Comparison articles or reviews
+
 Must include: institution/company name, researcher names, specific breakthrough, announcement date. Format: **[Institution/Company] [Specific Breakthrough]** (Date)`
     },
     {
@@ -210,6 +252,13 @@ Must include: institution/company name, researcher names, specific breakthrough,
 - Specific AI partnerships between identifiable businesses
 - Named enterprises launching AI-powered services or products
 - Specific AI adoption announcements from known corporations
+
+IMPORTANT - ONLY include actual NEWS EVENTS (announcements, launches, releases). DO NOT include:
+- Wikipedia pages or encyclopedia entries
+- Listicles like "Best X", "Top 10 Y", "X alternatives to Y"
+- How-to guides, tutorials, or explainer articles
+- Comparison articles or reviews
+
 Must include: company names, specific AI implementations, partnership details, announcement date. Format: **[Company] [Specific AI Implementation]** (Date)`
     },
     {
@@ -219,6 +268,13 @@ Must include: company names, specific AI implementations, partnership details, a
 - Specific researchers moving between identifiable institutions
 - Named AI leaders making strategic announcements
 - Specific hiring or team formation announcements from known companies
+
+IMPORTANT - ONLY include actual NEWS EVENTS (announcements, launches, releases). DO NOT include:
+- Wikipedia pages or encyclopedia entries
+- Listicles like "Best X", "Top 10 Y", "X alternatives to Y"
+- How-to guides, tutorials, or explainer articles
+- Comparison articles or reviews
+
 Must include: person names, company names, specific roles, announcement date. Format: **[Person] joins/leaves [Company] as [Role]** (Date)`
     }
   ];
