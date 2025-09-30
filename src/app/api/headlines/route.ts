@@ -20,6 +20,14 @@ interface SearchResult {
   page_age?: string;
 }
 
+interface HeadlineWithMetadata {
+  title: string;
+  url?: string;
+  description?: string;
+  date?: string;
+  source: 'brave' | 'perplexity' | 'rss';
+}
+
 interface CachedHeadlines {
   headlines: string[];
   lastFetch: string;
@@ -438,8 +446,18 @@ async function performMultipleBraveSearches(): Promise<SearchResult[]> {
   return allResults;
 }
 
-// New function: send all headlines to GPT-4o for curation
-async function curateWithGPT(allHeadlines: string[]): Promise<string[]> {
+// New function: send all headlines to GPT-4o for curation with metadata
+async function curateWithGPT(allHeadlines: HeadlineWithMetadata[]): Promise<string[]> {
+  // Format headlines with metadata for GPT to review
+  const formattedHeadlines = allHeadlines.map((h, idx) => {
+    let formatted = `${idx + 1}. **${h.title}**`;
+    if (h.date) formatted += ` (${h.date})`;
+    if (h.url) formatted += `\n   URL: ${h.url}`;
+    if (h.description) formatted += `\n   Description: ${h.description}`;
+    formatted += `\n   Source: ${h.source}`;
+    return formatted;
+  }).join('\n\n');
+
   const prompt = `You are an expert AI news curator for a weekly podcast about artificial intelligence developments that builders and entrepreneurs care about.
 
 CONTEXT: You will receive ~100-200 headlines from multiple sources (Perplexity AI searches, Brave web searches, RSS feeds). Your job is to select the 10 BEST headlines that represent the most important, discussion-worthy AI developments from the past week.
@@ -451,19 +469,38 @@ TARGET AUDIENCE: AI builders, entrepreneurs, developers, and tech leaders who wa
 - Funding and business developments in AI
 - New tools and platforms for AI development
 
-STRICT REQUIREMENTS FOR SELECTION:
-1. MUST point to a SPECIFIC company, person, or organization taking a SPECIFIC action
-2. MUST be from the past 7 days (reject anything older)
-3. MUST have concrete business or technical impact
-4. MUST be an actual NEWS EVENT (announcement, launch, release, funding, acquisition, etc.)
-5. ABSOLUTELY REJECT: Wikipedia pages, encyclopedia entries, reference documentation
-6. ABSOLUTELY REJECT: Listicles like "Top 10 X", "Best Y for Z", "X Alternatives to Y"
-7. ABSOLUTELY REJECT: How-to guides, tutorials, explainer articles, comparison articles
-8. ABSOLUTELY REJECT: Generic trend pieces, opinion pieces, analysis pieces without news hook
-9. REJECT regulatory battles, lawsuits, or AI safety controversies
-10. REJECT vague headlines without clear company attribution
-11. PRIORITIZE US-based companies and developments
-12. FOCUS on innovation, progress, and what builders can actually use
+STRICT REQUIREMENTS FOR SELECTION - FOLLOW THESE EXACTLY:
+
+✅ MUST INCLUDE (all of these are required):
+1. SPECIFIC company, person, or organization name mentioned
+2. SPECIFIC action or event (launched, released, raised, announced, acquired, hired, etc.)
+3. From the past 7 days only
+4. Concrete business or technical impact
+
+❌ ABSOLUTELY REJECT (if headline matches ANY of these patterns, REJECT IT):
+5. ANY headline containing words: "best", "top", "alternatives", "guide", "how to", "tutorial", "explained", "understanding", "introduction to"
+6. ANY URL from wikipedia.org, reddit.com, medium.com blogs, or personal blogs
+7. ANY URL or description that indicates it's a listicle, guide, or educational content
+8. ANY headline that sounds like an article title rather than a news event
+9. ANY headline about general concepts, educational content, or explainers
+10. ANY headline that's comparing tools/products ("X vs Y", "Better than Z")
+11. ANY headline that's a question ("What is...", "How does...", "Why should...")
+12. ANY listicle or ranking ("10 ways", "5 tools", "Best practices")
+13. Regulatory battles, lawsuits, or AI safety controversies
+14. Vague headlines without clear company/person attribution
+15. Opinion pieces or analysis without a concrete news hook
+
+🔍 USE THE URL AND DESCRIPTION TO HELP FILTER:
+- Check if the URL is from Wikipedia, forums, or educational sites → REJECT
+- Check if the description mentions "guide", "tutorial", "best", "top", "how to" → REJECT
+- Check if the description is explaining a concept rather than reporting news → REJECT
+
+✅ ONLY SELECT headlines that announce a SPECIFIC EVENT:
+- "Company X launches Product Y"
+- "Company X raises $NM in Series Z"
+- "Company X releases Model Y with Z capability"  
+- "Person X joins Company Y as Z"
+- "Company X acquires Company Y"
 
 PRIORITIZE THESE CATEGORIES (in order):
 1. **AI Model Releases & Capabilities** - New models, performance improvements, multimodal features
@@ -494,24 +531,37 @@ EXAMPLES OF GOOD HEADLINES (these are the types we want):
 - "Claude Sonnet 4.5 released" - Specific product, specific version, concrete event
 - "Anthropic raises $500M Series D led by Sequoia" - Specific company, specific funding, specific investors
 
-EXAMPLES OF BAD HEADLINES (REJECT ALL OF THESE):
-- "Best AI models for coding" - This is a listicle/comparison article, NOT news
-- "20 alternatives to ChatGPT" - This is a listicle, NOT a news event
-- "How to use Claude for programming" - This is a tutorial/how-to guide, NOT news
-- "Wikipedia: History of AI" - This is reference documentation, NOT news
-- "Understanding transformer models" - This is an explainer article, NOT news
+EXAMPLES OF BAD HEADLINES (REJECT ALL OF THESE - they are NOT news):
+- "Best AI models for coding" ❌ (listicle)
+- "20 alternatives to ChatGPT" ❌ (listicle)
+- "Top 10 AI tools for developers" ❌ (listicle)
+- "How to use Claude for programming" ❌ (tutorial)
+- "Understanding transformer models" ❌ (explainer)
+- "What is GPT-4" ❌ (educational)
+- "Introduction to AI agents" ❌ (educational)
+- "Guide to prompt engineering" ❌ (guide)
+- "AI coding assistants explained" ❌ (explainer)
+- "The future of AI" ❌ (opinion/trend piece)
+- Anything from Wikipedia ❌ (encyclopedia)
+- Anything with "vs" or "compared to" ❌ (comparison)
 
 OUTPUT FORMAT:
 Return exactly 10 headlines, each on a new line, ranked by importance/relevance. Keep original headline text but ensure each one meets the strict requirements above. These should be HIGH QUALITY, NOTEWORTHY AI news headlines only.
 
-HEADLINES TO CURATE:
-${allHeadlines.join('\n')}
+HEADLINES TO CURATE (with URL and description for filtering):
+${formattedHeadlines}
 
-Please select and return the 10 BEST headlines that meet all the above criteria, ranked by importance for AI builders and entrepreneurs:`;
+FINAL INSTRUCTIONS:
+Review each headline carefully. Ask yourself: "Is this announcing a SPECIFIC EVENT that happened?" 
+- If YES → consider including it
+- If NO (it's educational, a guide, a listicle, a comparison, or general information) → REJECT it immediately
+
+Return ONLY the 10 BEST actual news event headlines. If you're unsure whether something is news or not, REJECT IT.
+Be BRUTAL in your filtering. We want ONLY concrete announcements of things that HAPPENED, not articles ABOUT things.`;
 
   try {
-    console.log('🤖 [GPT] Starting headline curation...');
-    console.log(`📊 [GPT] Processing ${allHeadlines.length} total headlines`);
+    console.log('🤖 [GPT] Starting headline curation with metadata...');
+    console.log(`📊 [GPT] Processing ${allHeadlines.length} total headlines (with URLs and descriptions)`);
     console.log('📝 [GPT] Full curation prompt:');
     console.log(prompt);
     
@@ -522,7 +572,7 @@ Please select and return the 10 BEST headlines that meet all the above criteria,
         messages: [
           {
             role: 'system',
-            content: 'You are an expert AI news curator with deep knowledge of the AI industry, startup ecosystem, and what matters to builders and entrepreneurs.'
+            content: 'You are an expert AI news curator with deep knowledge of the AI industry. You are EXTREMELY STRICT about only selecting actual news events. You AGGRESSIVELY REJECT any content that is educational, explanatory, or listicle-style. If a headline sounds like an article title, blog post, or Wikipedia entry rather than a news announcement, you IMMEDIATELY REJECT it. You have ZERO TOLERANCE for non-news content.'
           },
           {
             role: 'user',
@@ -570,9 +620,9 @@ Please select and return the 10 BEST headlines that meet all the above criteria,
       });
     }
     
-    // Fallback: return first 10 headlines if GPT fails
+    // Fallback: return first 10 headline titles if GPT fails
     console.log('🔄 [GPT] Falling back to first 10 headlines...');
-    return allHeadlines.slice(0, 10);
+    return allHeadlines.slice(0, 10).map(h => h.title);
   }
 }
 
@@ -591,8 +641,8 @@ async function fetchFreshHeadlines(): Promise<{ headlines: string[], strategy: s
   console.log(`📊 [SOURCES] Fetched ${perplexityHeadlines.length} headlines from Perplexity.`);
   console.log(`📊 [SOURCES] Fetched ${rssHeadlines.length} headlines from RSS Feeds.`);
 
-  // Combine all headlines (no deduplication)
-  const braveHeadlinesMapped: string[] = braveResults.map(r => {
+  // Map Brave results to HeadlineWithMetadata with full context
+  const braveHeadlinesWithMetadata: HeadlineWithMetadata[] = braveResults.map(r => {
     let dateStr = 'Recent';
     if (r.page_age) {
       try {
@@ -604,11 +654,36 @@ async function fetchFreshHeadlines(): Promise<{ headlines: string[], strategy: s
         // Silently handle date parsing errors
       }
     }
-    return `**${r.title}** (${dateStr})`;
+    return {
+      title: r.title,
+      url: r.url,
+      description: r.description,
+      date: dateStr,
+      source: 'brave' as const
+    };
   });
 
-  // Pass all to GPT-4o for curation
-  const curated = await curateWithGPT(braveHeadlinesMapped.concat(perplexityHeadlines, rssHeadlines));
+  // Map Perplexity headlines to HeadlineWithMetadata (no URL/description available)
+  const perplexityHeadlinesWithMetadata: HeadlineWithMetadata[] = perplexityHeadlines.map(h => ({
+    title: h,
+    source: 'perplexity' as const
+  }));
+
+  // Map RSS headlines to HeadlineWithMetadata (no URL/description available)
+  const rssHeadlinesWithMetadata: HeadlineWithMetadata[] = rssHeadlines.map(h => ({
+    title: h,
+    source: 'rss' as const
+  }));
+
+  // Combine all headlines with metadata
+  const allHeadlinesWithMetadata = [
+    ...braveHeadlinesWithMetadata,
+    ...perplexityHeadlinesWithMetadata,
+    ...rssHeadlinesWithMetadata
+  ];
+
+  // Pass all to GPT-4o for curation with full metadata
+  const curated = await curateWithGPT(allHeadlinesWithMetadata);
   return { headlines: curated, strategy: 'brave+perplexity+rss' };
 }
 
