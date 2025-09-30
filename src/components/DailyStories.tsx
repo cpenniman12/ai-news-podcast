@@ -169,23 +169,23 @@ export function DailyStories({ episode, onBack }: DailyStoriesProps) {
   const progressPercent = currentState.duration > 0 ? (currentState.currentTime / currentState.duration) * 100 : 0;
 
   return (
-    <div className=\"min-h-screen bg-black text-white\">
+    <div className="min-h-screen bg-black text-white">
       {/* Hidden audio elements */}
-      <audio ref={audio1Ref} preload=\"metadata\">
-        {episode.story_1_audio_url && <source src={episode.story_1_audio_url} type=\"audio/mpeg\" />}
+      <audio ref={audio1Ref} preload="metadata">
+        {episode.story_1_audio_url && <source src={episode.story_1_audio_url} type="audio/mpeg" />}
       </audio>
-      <audio ref={audio2Ref} preload=\"metadata\">
-        {episode.story_2_audio_url && <source src={episode.story_2_audio_url} type=\"audio/mpeg\" />}
+      <audio ref={audio2Ref} preload="metadata">
+        {episode.story_2_audio_url && <source src={episode.story_2_audio_url} type="audio/mpeg" />}
       </audio>
 
       {/* Header */}
-      <header className=\"px-5 py-6 md:px-10 md:py-8\">
-        <div className=\"max-w-[680px] mx-auto flex items-center justify-between\">
+      <header className="px-5 py-6 md:px-10 md:py-8">
+        <div className="max-w-[680px] mx-auto flex items-center justify-between">
           <div>
-            <h1 className=\"text-[1.5rem] md:text-2xl font-semibold tracking-tight mb-1\">
+            <h1 className="text-[1.5rem] md:text-2xl font-semibold tracking-tight mb-1">
               Today's AI News
             </h1>
-            <p className=\"text-sm text-white text-opacity-60\">
+            <p className="text-sm text-white text-opacity-60">
               {new Date(episode.episode_date).toLocaleDateString('en-US', {
                 weekday: 'long',
                 year: 'numeric',
@@ -197,10 +197,10 @@ export function DailyStories({ episode, onBack }: DailyStoriesProps) {
           {onBack && (
             <button
               onClick={onBack}
-              className=\"text-white text-opacity-60 hover:text-opacity-100 transition-opacity\"
+              className="text-white text-opacity-60 hover:text-opacity-100 transition-opacity"
             >
-              <svg className=\"w-6 h-6\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">
-                <path strokeLinecap=\"round\" strokeLinejoin=\"round\" strokeWidth={2} d=\"M6 18L18 6M6 6l12 12\" />
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           )}
@@ -208,9 +208,9 @@ export function DailyStories({ episode, onBack }: DailyStoriesProps) {
       </header>
 
       {/* Story Navigation */}
-      <div className=\"px-5 md:px-10 mb-8\">
-        <div className=\"max-w-[680px] mx-auto\">
-          <div className=\"flex space-x-4 border-b border-white border-opacity-10\">
+      <div className="px-5 md:px-10 mb-8">
+        <div className="max-w-[680px] mx-auto">
+          <div className="flex space-x-4 border-b border-white border-opacity-10">
             <button
               onClick={() => setActiveStory(1)}
               className={`pb-3 px-1 border-b-2 transition-colors text-sm font-medium ${
@@ -236,46 +236,46 @@ export function DailyStories({ episode, onBack }: DailyStoriesProps) {
       </div>
 
       {/* Current Story Content */}
-      <main className=\"px-5 md:px-10 pb-32\">
-        <div className=\"max-w-[680px] mx-auto\">
+      <main className="px-5 md:px-10 pb-32">
+        <div className="max-w-[680px] mx-auto">
           {/* Story Title */}
-          <h2 className=\"text-xl md:text-2xl font-semibold mb-6 leading-tight\">
+          <h2 className="text-xl md:text-2xl font-semibold mb-6 leading-tight">
             {title}
           </h2>
 
           {/* Audio Player */}
-          <div className=\"bg-white bg-opacity-5 rounded-xl p-6 mb-8\">
-            <div className=\"flex items-center space-x-4 mb-4\">
+          <div className="bg-white bg-opacity-5 rounded-xl p-6 mb-8">
+            <div className="flex items-center space-x-4 mb-4">
               <button
                 onClick={handlePlayPause}
                 disabled={!audioUrl || currentState.isLoading}
-                className=\"w-12 h-12 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-full flex items-center justify-center transition-colors\"
+                className="w-12 h-12 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-full flex items-center justify-center transition-colors"
               >
                 {currentState.isLoading ? (
-                  <div className=\"w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin\" />
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 ) : currentState.isPlaying ? (
-                  <svg className=\"w-5 h-5 text-white\" fill=\"currentColor\" viewBox=\"0 0 24 24\">
-                    <rect x=\"6\" y=\"4\" width=\"4\" height=\"16\" />
-                    <rect x=\"14\" y=\"4\" width=\"4\" height=\"16\" />
+                  <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                    <rect x="6" y="4" width="4" height="16" />
+                    <rect x="14" y="4" width="4" height="16" />
                   </svg>
                 ) : (
-                  <svg className=\"w-5 h-5 text-white ml-0.5\" fill=\"currentColor\" viewBox=\"0 0 24 24\">
-                    <path d=\"M8 5v14l11-7z\" />
+                  <svg className="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z" />
                   </svg>
                 )}
               </button>
               
-              <div className=\"flex-1\">
-                <div className=\"flex items-center justify-between text-xs text-white text-opacity-60 mb-1\">
+              <div className="flex-1">
+                <div className="flex items-center justify-between text-xs text-white text-opacity-60 mb-1">
                   <span>{formatTime(currentState.currentTime)}</span>
                   <span>{formatTime(currentState.duration)}</span>
                 </div>
                 <div 
-                  className=\"w-full h-2 bg-white bg-opacity-20 rounded-full cursor-pointer\"
+                  className="w-full h-2 bg-white bg-opacity-20 rounded-full cursor-pointer"
                   onClick={handleSeek}
                 >
                   <div 
-                    className=\"h-full bg-blue-500 rounded-full transition-all duration-100\"
+                    className="h-full bg-blue-500 rounded-full transition-all duration-100"
                     style={{ width: `${progressPercent}%` }}
                   />
                 </div>
@@ -283,15 +283,15 @@ export function DailyStories({ episode, onBack }: DailyStoriesProps) {
             </div>
 
             {!audioUrl && (
-              <p className=\"text-sm text-white text-opacity-50 text-center\">
+              <p className="text-sm text-white text-opacity-50 text-center">
                 Audio not available for this story
               </p>
             )}
           </div>
 
           {/* Story Script/Content */}
-          <div className=\"prose prose-invert max-w-none\">
-            <div className=\"text-white text-opacity-80 leading-relaxed whitespace-pre-wrap\">
+          <div className="prose prose-invert max-w-none">
+            <div className="text-white text-opacity-80 leading-relaxed whitespace-pre-wrap">
               {script}
             </div>
           </div>
