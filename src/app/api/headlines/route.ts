@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server';
 import axios from 'axios';
 import Parser from 'rss-parser';
 
+// Configure runtime for longer execution time
+export const maxDuration = 60; // 60 seconds
+export const dynamic = 'force-dynamic'; // Disable caching at the Next.js level
+
 const BRAVE_API_KEY = process.env.BRAVE_API_KEY;
 const BRAVE_WEB_API_URL = process.env.BRAVE_WEB_API_URL || 'https://api.search.brave.com/res/v1/web/search';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -259,8 +263,8 @@ Must include: person names, company names, specific roles, announcement date. Fo
       
       // Add delay between requests to respect rate limits (except for last request)
       if (i < prompts.length - 1) {
-        console.log(`⏳ [Perplexity] Waiting 2 seconds before next category...`);
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        console.log(`⏳ [Perplexity] Waiting 1 second before next category...`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
       
     } catch (error: any) {
@@ -354,8 +358,8 @@ async function performMultipleBraveSearches(): Promise<SearchResult[]> {
       
       // Add delay between searches to respect rate limits (except for last search)
       if (i < searchQueries.length - 1) {
-        console.log(`⏳ [Brave] Waiting 3 seconds before next search...`);
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        console.log(`⏳ [Brave] Waiting 2 seconds before next search...`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
       }
       
     } catch (error: any) {
