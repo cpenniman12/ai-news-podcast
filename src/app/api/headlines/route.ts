@@ -382,7 +382,7 @@ async function performMultipleBraveSearches(): Promise<SearchResult[]> {
 async function curateWithGPT(allHeadlines: string[]): Promise<string[]> {
   const prompt = `You are an expert AI news curator for a weekly podcast about artificial intelligence developments that builders and entrepreneurs care about.
 
-CONTEXT: You will receive ~100-200 headlines from multiple sources (Perplexity AI searches, Brave web searches, RSS feeds). Your job is to select the 20 BEST headlines that represent the most important, discussion-worthy AI developments from the past week.
+CONTEXT: You will receive ~100-200 headlines from multiple sources (Perplexity AI searches, Brave web searches, RSS feeds). Your job is to select the 10 BEST headlines that represent the most important, discussion-worthy AI developments from the past week.
 
 TARGET AUDIENCE: AI builders, entrepreneurs, developers, and tech leaders who want to stay current on:
 - New AI capabilities they can use in their products
@@ -395,11 +395,15 @@ STRICT REQUIREMENTS FOR SELECTION:
 1. MUST point to a SPECIFIC company, person, or organization taking a SPECIFIC action
 2. MUST be from the past 7 days (reject anything older)
 3. MUST have concrete business or technical impact
-4. REJECT generic trend pieces, listicles, or "Top X" articles
-5. REJECT regulatory battles, lawsuits, or AI safety controversies
-6. REJECT vague headlines without clear company attribution
-7. PRIORITIZE US-based companies and developments
-8. FOCUS on innovation, progress, and what builders can actually use
+4. MUST be an actual NEWS EVENT (announcement, launch, release, funding, acquisition, etc.)
+5. ABSOLUTELY REJECT: Wikipedia pages, encyclopedia entries, reference documentation
+6. ABSOLUTELY REJECT: Listicles like "Top 10 X", "Best Y for Z", "X Alternatives to Y"
+7. ABSOLUTELY REJECT: How-to guides, tutorials, explainer articles, comparison articles
+8. ABSOLUTELY REJECT: Generic trend pieces, opinion pieces, analysis pieces without news hook
+9. REJECT regulatory battles, lawsuits, or AI safety controversies
+10. REJECT vague headlines without clear company attribution
+11. PRIORITIZE US-based companies and developments
+12. FOCUS on innovation, progress, and what builders can actually use
 
 PRIORITIZE THESE CATEGORIES (in order):
 1. **AI Model Releases & Capabilities** - New models, performance improvements, multimodal features
@@ -425,13 +429,25 @@ DIVERSITY REQUIREMENTS:
 - Balance between big tech and startups
 - Include hardware and software developments
 
+EXAMPLES OF GOOD HEADLINES (these are the types we want):
+- "NVIDIA to invest up to $100B in OpenAI" - Specific companies, specific action, specific amount
+- "Claude Sonnet 4.5 released" - Specific product, specific version, concrete event
+- "Anthropic raises $500M Series D led by Sequoia" - Specific company, specific funding, specific investors
+
+EXAMPLES OF BAD HEADLINES (REJECT ALL OF THESE):
+- "Best AI models for coding" - This is a listicle/comparison article, NOT news
+- "20 alternatives to ChatGPT" - This is a listicle, NOT a news event
+- "How to use Claude for programming" - This is a tutorial/how-to guide, NOT news
+- "Wikipedia: History of AI" - This is reference documentation, NOT news
+- "Understanding transformer models" - This is an explainer article, NOT news
+
 OUTPUT FORMAT:
-Return exactly 20 headlines, each on a new line, ranked by importance/relevance. Keep original headline text but ensure each one meets the strict requirements above.
+Return exactly 10 headlines, each on a new line, ranked by importance/relevance. Keep original headline text but ensure each one meets the strict requirements above. These should be HIGH QUALITY, NOTEWORTHY AI news headlines only.
 
 HEADLINES TO CURATE:
 ${allHeadlines.join('\n')}
 
-Please select and return the 20 BEST headlines that meet all the above criteria, ranked by importance for AI builders and entrepreneurs:`;
+Please select and return the 10 BEST headlines that meet all the above criteria, ranked by importance for AI builders and entrepreneurs:`;
 
   try {
     console.log('🤖 [GPT] Starting headline curation...');
@@ -474,7 +490,7 @@ Please select and return the 20 BEST headlines that meet all the above criteria,
       .split('\n')
       .map((line: string) => line.replace(/^\d+\.\s*/, '').trim())
       .filter(Boolean)
-      .slice(0, 20); // Ensure exactly 20 headlines
+      .slice(0, 10); // Ensure exactly 10 headlines
 
     console.log(`✅ [GPT] Curated ${curatedHeadlines.length} final headlines`);
     console.log('🎯 [GPT] Final curated headlines:');
@@ -494,9 +510,9 @@ Please select and return the 20 BEST headlines that meet all the above criteria,
       });
     }
     
-    // Fallback: return first 20 headlines if GPT fails
-    console.log('🔄 [GPT] Falling back to first 20 headlines...');
-    return allHeadlines.slice(0, 20);
+    // Fallback: return first 10 headlines if GPT fails
+    console.log('🔄 [GPT] Falling back to first 10 headlines...');
+    return allHeadlines.slice(0, 10);
   }
 }
 
