@@ -59,7 +59,17 @@ export function PodcastGenerator({ selectedHeadlines, onGenerate, onComplete, is
       
       // Get the audio blob and create a URL for it
       const audioBlob = await audioRes.blob();
-      const audioUrl = URL.createObjectURL(audioBlob);
+      console.log('🎵 Audio blob received:', {
+        size: audioBlob.size,
+        type: audioBlob.type,
+      });
+      
+      // Ensure the blob has the correct MIME type for audio playback
+      const typedBlob = audioBlob.type === 'audio/mpeg' 
+        ? audioBlob 
+        : new Blob([audioBlob], { type: 'audio/mpeg' });
+      const audioUrl = URL.createObjectURL(typedBlob);
+      console.log('🔗 Audio URL created:', audioUrl);
       
       setProgress(100);
       setCurrentStep('Your detailed podcast is ready!');

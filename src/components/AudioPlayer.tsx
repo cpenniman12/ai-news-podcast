@@ -20,26 +20,63 @@ export function AudioPlayer({ audioUrl, onBack, selectedCount }: AudioPlayerProp
     const audio = audioRef.current;
     if (!audio) return;
 
+    console.log('🎵 AudioPlayer: Setting up audio with URL:', audioUrl?.substring(0, 50));
+
     const handleLoadedData = () => {
-      console.log('Audio loaded successfully');
+      console.log('✅ Audio loaded successfully, duration:', audio.duration);
       setDuration(audio.duration);
       setIsLoading(false);
     };
 
     const handleCanPlay = () => {
-      console.log('Audio can play');
+      console.log('✅ Audio can play, duration:', audio.duration);
       setDuration(audio.duration);
       setIsLoading(false);
     };
 
+    const handleLoadStart = () => {
+      console.log('📥 Audio load started');
+    };
+
+    const handleProgress = () => {
+      const buffered = audio.buffered;
+      if (buffered.length > 0) {
+        console.log('📊 Audio buffering progress:', buffered.end(buffered.length - 1), 'seconds');
+      }
+    };
+
+    const handleStalled = () => {
+      console.warn('⚠️ Audio stalled - network may be slow or blob URL may be invalid');
+    };
+
+    const handleWaiting = () => {
+      console.log('⏳ Audio waiting for more data...');
+    };
+
     const handleError = (e: Event) => {
-      console.error('Audio error:', e);
-      console.error('Audio error details:', {
-        error: audio.error,
+      const errorCode = audio.error?.code;
+      const errorMessage = audio.error?.message || 'Unknown error';
+      const errorCodeMap: Record<number, string> = {
+        1: 'MEDIA_ERR_ABORTED - Fetching was aborted',
+        2: 'MEDIA_ERR_NETWORK - Network error occurred',
+        3: 'MEDIA_ERR_DECODE - Decoding error occurred',
+        4: 'MEDIA_ERR_SRC_NOT_SUPPORTED - Source format not supported',
+      };
+      
+      const errorDetails = {
+        errorCode,
+        errorType: errorCode ? errorCodeMap[errorCode] : 'No error code',
+        errorMessage,
         networkState: audio.networkState,
         readyState: audio.readyState,
-        src: audio.src
-      });
+        src: audio.src?.substring(0, 100) + '...',
+        currentTime: audio.currentTime,
+        duration: audio.duration,
+      };
+      
+      // Log as string to ensure it shows in console
+      console.error('❌ Audio error event:', e.type);
+      console.error('❌ Audio error details:', JSON.stringify(errorDetails, null, 2));
       setIsLoading(false);
     };
 
@@ -48,10 +85,15 @@ export function AudioPlayer({ audioUrl, onBack, selectedCount }: AudioPlayerProp
     };
 
     const handleEnded = () => {
+      console.log('🏁 Audio playback ended');
       setIsPlaying(false);
       setCurrentTime(0);
     };
 
+    audio.addEventListener('loadstart', handleLoadStart);
+    audio.addEventListener('progress', handleProgress);
+    audio.addEventListener('stalled', handleStalled);
+    audio.addEventListener('waiting', handleWaiting);
     audio.addEventListener('loadeddata', handleLoadedData);
     audio.addEventListener('canplay', handleCanPlay);
     audio.addEventListener('error', handleError);
@@ -70,6 +112,10 @@ export function AudioPlayer({ audioUrl, onBack, selectedCount }: AudioPlayerProp
     }, 1000);
 
     return () => {
+      audio.removeEventListener('loadstart', handleLoadStart);
+      audio.removeEventListener('progress', handleProgress);
+      audio.removeEventListener('stalled', handleStalled);
+      audio.removeEventListener('waiting', handleWaiting);
       audio.removeEventListener('loadeddata', handleLoadedData);
       audio.removeEventListener('canplay', handleCanPlay);
       audio.removeEventListener('error', handleError);
@@ -78,11 +124,8 @@ export function AudioPlayer({ audioUrl, onBack, selectedCount }: AudioPlayerProp
       clearTimeout(fallbackTimeout);
       clearInterval(countdownInterval);
       
-      // Clean up blob URL to prevent memory leaks
-      if (audioUrl && audioUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(audioUrl);
-        console.log('🗑️ Cleaned up blob URL');
-      }
+      // Don't clean up blob URL here - it may still be needed if component remounts
+      // The cleanup should happen when going back to headlines
     };
   }, [audioUrl]);
 
