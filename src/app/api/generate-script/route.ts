@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 import { fetchTechNewsHeadlines, generatePodcastScript } from '@/utils/perplexity';
 
+// Increase route timeout for long-running script generation
+export const maxDuration = 300; // 5 minutes
+export const dynamic = 'force-dynamic';
+
 const PPLX_API_KEY = process.env.PPLX_API_KEY;
 const PPLX_API_URL = process.env.PPLX_API_URL || 'https://api.perplexity.ai/chat/completions';
 
