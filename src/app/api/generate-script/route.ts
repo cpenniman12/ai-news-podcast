@@ -1,15 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import axios from 'axios';
-import { fetchTechNewsHeadlines, generatePodcastScript } from '@/utils/perplexity';
 
 // Increase route timeout for long-running script generation
 export const maxDuration = 300; // 5 minutes
 export const dynamic = 'force-dynamic';
 
-const PPLX_API_KEY = process.env.PPLX_API_KEY;
-const PPLX_API_URL = process.env.PPLX_API_URL || 'https://api.perplexity.ai/chat/completions';
-
-async function generateScriptForHeadline(headline: string): Promise<string> {
+async function generateScriptForHeadline(headline: string, apiKey: string, apiUrl: string): Promise<string> {
   const prompt = `You are an expert podcast scriptwriter. Write a conversational, engaging 2-3 minute podcast segment discussing the following news story. 
 
 **Instructions:**
@@ -22,9 +17,14 @@ async function generateScriptForHeadline(headline: string): Promise<string> {
 News story: ${headline}
 
 Script:`;
-  const response = await axios.post(
-    PPLX_API_URL,
-    {
+
+  const response = await fetch(apiUrl, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
       model: 'sonar',
       messages: [
         {
@@ -34,21 +34,25 @@ Script:`;
       ],
       max_tokens: 600,
       temperature: 0.7,
-    },
-    {
-      headers: {
-        'Authorization': `Bearer ${PPLX_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-    }
-  );
-  return response.data.choices?.[0]?.message?.content?.trim() || '';
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Perplexity API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content?.trim() || '';
 }
 
 export async function POST(req: NextRequest) {
+  // Read environment variables at runtime
+  const PPLX_API_KEY = process.env.PPLX_API_KEY;
+  const PPLX_API_URL = process.env.PPLX_API_URL || 'https://api.perplexity.ai/chat/completions';
+
   // Validate required environment variables at runtime
   if (!PPLX_API_KEY) {
-    console.error('❌ [API] PPLX_API_KEY environment variable is required');
+    console.error('[API] PPLX_API_KEY environment variable is required');
     return NextResponse.json(
       { error: 'PPLX_API_KEY not configured' },
       { status: 500 }
@@ -61,7 +65,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No headlines provided' }, { status: 400 });
     }
     // Generate a script for each headline in parallel
-    const scripts = await Promise.all(headlines.map(generateScriptForHeadline));
+    const scripts = await Promise.all(
+      headlines.map((h: string) => generateScriptForHeadline(h, PPLX_API_KEY, PPLX_API_URL))
+    );
     // Combine scripts with transitions
     const combinedScript = scripts.join('\n\n');
     return NextResponse.json({ script: combinedScript });
