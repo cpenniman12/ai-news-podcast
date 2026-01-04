@@ -1,99 +1,152 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, unlink } from 'fs/promises';
+import { writeFile, unlink, readFile, copyFile } from 'fs/promises';
 import { v4 as uuidv4 } from 'uuid';
 import { spawn } from 'child_process';
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const OPENAI_TTS_URL = process.env.OPENAI_TTS_URL || 'https://api.openai.com/v1/audio/speech';
+// Increase route timeout to 5 minutes for long-running TTS operations
+export const maxDuration = 300; // 5 minutes
+export const dynamic = 'force-dynamic';
 
-function truncateScript(script: string, maxLength: number = 4000): string {
-  if (script.length <= maxLength) return script;
-  
-  // Try to cut at sentence boundary
-  const truncated = script.substring(0, maxLength);
-  const lastPeriod = truncated.lastIndexOf('.');
-  const lastExclamation = truncated.lastIndexOf('!');
-  const lastQuestion = truncated.lastIndexOf('?');
-  
-  const lastSentenceEnd = Math.max(lastPeriod, lastExclamation, lastQuestion);
-  
-  if (lastSentenceEnd > maxLength * 0.8) {
-    // If we found a sentence boundary in the last 20% of text, use it
-    return truncated.substring(0, lastSentenceEnd + 1);
-  } else {
-    // Otherwise, just truncate and add ellipsis
-    return truncated + '...';
+/**
+ * Split a long script into chunks that fit within TTS limits
+ * OpenAI TTS has a limit of ~4096 characters per request
+ */
+function chunkScript(script: string, maxChunkLength: number = 4000): string[] {
+  if (script.length <= maxChunkLength) {
+    return [script];
   }
+  
+  const chunks: string[] = [];
+  let currentIndex = 0;
+  
+  while (currentIndex < script.length) {
+    const remaining = script.length - currentIndex;
+    const chunkSize = Math.min(maxChunkLength, remaining);
+    
+    let chunkEnd = currentIndex + chunkSize;
+    
+    // If not the last chunk, try to break at sentence boundary
+    if (chunkEnd < script.length) {
+      const chunkText = script.substring(currentIndex, chunkEnd);
+      const lastPeriod = chunkText.lastIndexOf('.');
+      const lastExclamation = chunkText.lastIndexOf('!');
+      const lastQuestion = chunkText.lastIndexOf('?');
+      const lastNewline = chunkText.lastIndexOf('\n\n');
+      
+      const lastSentenceEnd = Math.max(lastPeriod, lastExclamation, lastQuestion, lastNewline);
+      
+      if (lastSentenceEnd > chunkSize * 0.7) {
+        // Found a good break point in the last 30% of chunk
+        chunkEnd = currentIndex + lastSentenceEnd + 1;
+      }
+    }
+    
+    chunks.push(script.substring(currentIndex, chunkEnd).trim());
+    currentIndex = chunkEnd;
+  }
+  
+  return chunks;
 }
 
-async function generateTTS(script: string, outPath: string): Promise<void> {
-  const truncatedScript = truncateScript(script, 4000);
-  console.log(`[TTS DEBUG] Original script length: ${script.length}, truncated: ${truncatedScript.length}`);
+async function generateTTS(script: string, outPath: string, apiKey: string, ttsUrl: string): Promise<void> {
+  const scriptChunks = chunkScript(script, 4000);
+  console.log(`[TTS DEBUG] Original script length: ${script.length}, split into ${scriptChunks.length} chunk(s)`);
   
   const maxRetries = 3;
-  const timeoutMs = 30000; // 30 seconds timeout
+  const timeoutMs = 60000; // 60 seconds timeout (increased for longer scripts)
   
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      console.log(`[TTS DEBUG] Making TTS request to OpenAI (attempt ${attempt}/${maxRetries})...`);
-      
-      // Create an AbortController for timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => {
-        controller.abort();
-      }, timeoutMs);
-      
-      const response = await fetch(OPENAI_TTS_URL, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${OPENAI_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'tts-1-hd',
-          input: truncatedScript,
-          voice: 'alloy',
-          response_format: 'mp3',
-        }),
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`[TTS DEBUG] OpenAI TTS API failed with status ${response.status}:`, errorText);
+  // Generate TTS for each chunk and concatenate
+  const chunkAudioFiles: string[] = [];
+  
+  for (let chunkIndex = 0; chunkIndex < scriptChunks.length; chunkIndex++) {
+    const chunk = scriptChunks[chunkIndex];
+    const chunkOutPath = `/tmp/chunk-${uuidv4()}.mp3`;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`[TTS DEBUG] Making TTS request for chunk ${chunkIndex + 1}/${scriptChunks.length} (attempt ${attempt}/${maxRetries})...`);
+        console.log(`[TTS DEBUG] Chunk length: ${chunk.length} characters`);
         
-        // Check if it's a rate limit error (429) and wait before retrying
-        if (response.status === 429 && attempt < maxRetries) {
-          const waitTime = Math.pow(2, attempt) * 1000; // Exponential backoff
-          console.log(`[TTS DEBUG] Rate limited, waiting ${waitTime}ms before retry...`);
-          await new Promise(resolve => setTimeout(resolve, waitTime));
-          continue;
+        // Create an AbortController for timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => {
+          controller.abort();
+        }, timeoutMs);
+        
+        const response = await fetch(ttsUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'tts-1-hd',
+            input: chunk,
+            voice: 'alloy',
+            response_format: 'mp3',
+          }),
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`[TTS DEBUG] OpenAI TTS API failed with status ${response.status}:`, errorText);
+          
+          // Check if it's a rate limit error (429) and wait before retrying
+          if (response.status === 429 && attempt < maxRetries) {
+            const waitTime = Math.pow(2, attempt) * 1000; // Exponential backoff
+            console.log(`[TTS DEBUG] Rate limited, waiting ${waitTime}ms before retry...`);
+            await new Promise(resolve => setTimeout(resolve, waitTime));
+            continue;
+          }
+          
+          throw new Error(`OpenAI TTS API failed (${response.status}): ${errorText}`);
         }
         
-        throw new Error(`OpenAI TTS API failed (${response.status}): ${errorText}`);
+        console.log(`[TTS DEBUG] TTS request successful for chunk ${chunkIndex + 1}, writing to ${chunkOutPath}`);
+        const audioBuffer = Buffer.from(await response.arrayBuffer());
+        await writeFile(chunkOutPath, audioBuffer);
+        console.log(`[TTS DEBUG] Chunk audio file written, size: ${audioBuffer.length} bytes`);
+        chunkAudioFiles.push(chunkOutPath);
+        break; // Success, exit retry loop for this chunk
+        
+      } catch (error: any) {
+        console.error(`[TTS DEBUG] TTS attempt ${attempt} for chunk ${chunkIndex + 1} failed:`, error.message);
+        
+        if (attempt === maxRetries) {
+          // Clean up any partial chunks
+          for (const f of chunkAudioFiles) await unlink(f).catch(() => {});
+          throw new Error(`TTS generation failed after ${maxRetries} attempts for chunk ${chunkIndex + 1}: ${error.message}`);
+        }
+        
+        // Wait before retrying (exponential backoff)
+        const waitTime = Math.pow(2, attempt) * 1000;
+        console.log(`[TTS DEBUG] Waiting ${waitTime}ms before retry...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
       }
-      
-      console.log(`[TTS DEBUG] TTS request successful, writing to ${outPath}`);
-      const audioBuffer = Buffer.from(await response.arrayBuffer());
-      await writeFile(outPath, audioBuffer);
-      console.log(`[TTS DEBUG] Audio file written, size: ${audioBuffer.length} bytes`);
-      return; // Success, exit retry loop
-      
-    } catch (error: any) {
-      console.error(`[TTS DEBUG] TTS attempt ${attempt} failed:`, error.message);
-      
-      if (attempt === maxRetries) {
-        throw new Error(`TTS generation failed after ${maxRetries} attempts: ${error.message}`);
-      }
-      
-      // Wait before retrying (exponential backoff)
-      const waitTime = Math.pow(2, attempt) * 1000;
-      console.log(`[TTS DEBUG] Waiting ${waitTime}ms before retry...`);
-      await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
+    
+    // Small delay between chunks to avoid rate limiting
+    if (chunkIndex < scriptChunks.length - 1) {
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
   }
+  
+  // Concatenate all chunks into final audio file
+  if (chunkAudioFiles.length === 1) {
+    // Only one chunk, just copy it to the output path
+    await copyFile(chunkAudioFiles[0], outPath);
+    await unlink(chunkAudioFiles[0]).catch(() => {});
+  } else {
+    // Multiple chunks, concatenate them
+    await concatAudio(chunkAudioFiles, outPath);
+    // Clean up chunk files
+    for (const f of chunkAudioFiles) await unlink(f).catch(() => {});
+  }
+  
+  console.log(`[TTS DEBUG] Complete TTS audio written to ${outPath}`);
 }
 
 async function concatAudio(files: string[], outPath: string): Promise<void> {
@@ -112,7 +165,6 @@ async function concatAudio(files: string[], outPath: string): Promise<void> {
   } catch (error) {
     console.log(`[TTS DEBUG] ffmpeg not available, using simple concatenation fallback`);
     // Simple binary concatenation as fallback (works for MP3s)
-    const { readFile } = await import('fs/promises');
     const audioBuffers = await Promise.all(files.map(f => readFile(f)));
     const concatenated = Buffer.concat(audioBuffers);
     await writeFile(outPath, concatenated);
@@ -156,6 +208,10 @@ async function concatAudio(files: string[], outPath: string): Promise<void> {
 export async function POST(req: NextRequest) {
   console.log('[TTS DEBUG] POST request received');
   
+  // Read environment variables at runtime
+  const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+  const OPENAI_TTS_URL = process.env.OPENAI_TTS_URL || 'https://api.openai.com/v1/audio/speech';
+  
   // Validate required environment variables at runtime
   if (!OPENAI_API_KEY) {
     console.error('❌ [API] OPENAI_API_KEY environment variable is required');
@@ -192,7 +248,7 @@ export async function POST(req: NextRequest) {
     for (let i = 0; i < scripts.length; i++) {
       console.log(`[TTS DEBUG] Generating TTS for story ${i + 1}/${scripts.length}...`);
       const outPath = `/tmp/story-${uuidv4()}.mp3`;
-      await generateTTS(scripts[i], outPath);
+      await generateTTS(scripts[i], outPath, OPENAI_API_KEY, OPENAI_TTS_URL);
       console.log(`[TTS DEBUG] Generated TTS file: ${outPath}`);
       audioFiles.push(outPath);
       
@@ -217,7 +273,7 @@ export async function POST(req: NextRequest) {
     }
     // Read and return the final audio
     console.log(`[TTS DEBUG] Reading final audio file: ${finalPath}`);
-    const audioBuffer = await (await import('fs')).promises.readFile(finalPath);
+    const audioBuffer = await readFile(finalPath);
     console.log(`[TTS DEBUG] Final audio buffer size: ${audioBuffer.byteLength} bytes`);
     
     // Clean up temp files
@@ -241,4 +297,4 @@ export async function POST(req: NextRequest) {
     console.error('Error generating podcast audio:', error);
     return NextResponse.json({ error: 'Failed to generate podcast audio', details: error.message }, { status: 500 });
   }
-} 
+}

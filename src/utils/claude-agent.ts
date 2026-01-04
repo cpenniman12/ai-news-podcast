@@ -175,6 +175,9 @@ Your style is:
 - Enthusiastic about AI developments without being hyperbolic
 - Focused on the "so what" - why this matters to builders and entrepreneurs
 
+CRITICAL: Write the ACTUAL podcast script. Do NOT write meta-commentary like "Looking at the results..." or "Let me craft...". 
+Just write the spoken words the host would say.
+
 For each story segment:
 - Write a 2-3 minute segment (approximately 300-450 words)
 - Cut straight to the story - NO intro or greeting
@@ -184,7 +187,7 @@ For each story segment:
 - Explain the broader implications for the AI/tech industry
 - End with a smooth transition phrase that leads into the next story
 
-Format: Write only the spoken script text, no stage directions or metadata.`;
+Format: Write ONLY the spoken script text. No stage directions, no metadata, no explanations about what you're doing.`;
 
 /**
  * Fetch fresh AI/tech headlines using Claude with custom search tool
@@ -329,7 +332,6 @@ Generate exactly 20 headlines, numbered 1-20, each starting with ** and ending w
 
 /**
  * Generate a podcast script for a single headline using Claude
- * Uses web search for full article research
  */
 export async function generateScriptWithClaude(headline: string): Promise<string> {
   console.log(`✍️ [Claude] Generating script for: ${headline.slice(0, 80)}...`);
@@ -341,74 +343,28 @@ export async function generateScriptWithClaude(headline: string): Promise<string
 
 ${headline}
 
-You may use web search if needed to get more details about this story. Include:
-- Key details and context
+IMPORTANT: Write ONLY the spoken words. Do not write any meta-commentary like "Looking at the results..." or "Let me clarify...". 
+Just write what the podcast host would actually say out loud.
+
+Include:
+- Key details and context about the story
 - Specific numbers, amounts, or technical specifications  
 - Why this matters for AI builders and entrepreneurs
-- A smooth transition to the next story at the end
+- A smooth transition phrase at the end to lead into the next story
 
-Write only the spoken script text, ready to be read aloud.`;
+Write only the spoken script text, ready to be read aloud. Start immediately with the content.`;
 
     const message = await client.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 2048,
       system: SCRIPT_SYSTEM_PROMPT,
-      tools: [
-        {
-          type: 'web_search_20250305',
-          name: 'web_search',
-          max_uses: 1, // Only 1 search per story to control costs
-        } as Anthropic.Messages.WebSearchTool20250305
-      ],
       messages: [
         { role: 'user', content: userPrompt }
       ]
     });
-    
-    // Handle agentic loop if Claude wants to use tools
-    let finalMessage = message;
-    let messages: Anthropic.Messages.MessageParam[] = [
-      { role: 'user', content: userPrompt }
-    ];
 
-    let loopCount = 0;
-    const maxLoops = 3;
-    
-    while (finalMessage.stop_reason === 'tool_use' && loopCount < maxLoops) {
-      loopCount++;
-      console.log(`🔄 [Claude] Script research loop ${loopCount}...`);
-      
-      messages.push({ role: 'assistant', content: finalMessage.content });
-      
-      const toolUseBlocks = finalMessage.content.filter(
-        (block): block is Anthropic.Messages.ToolUseBlock => block.type === 'tool_use'
-      );
-      
-      const toolResults: Anthropic.Messages.ToolResultBlockParam[] = toolUseBlocks.map(toolUse => ({
-        type: 'tool_result' as const,
-        tool_use_id: toolUse.id,
-        content: 'Search completed successfully.'
-      }));
-      
-      messages.push({ role: 'user', content: toolResults });
-      
-      finalMessage = await client.messages.create({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 2048,
-        system: SCRIPT_SYSTEM_PROMPT,
-        tools: [
-          {
-            type: 'web_search_20250305',
-            name: 'web_search',
-            max_uses: 1,
-          } as Anthropic.Messages.WebSearchTool20250305
-        ],
-        messages,
-      });
-    }
-
-    // Extract text content from the final response
-    const textContent = finalMessage.content.find(block => block.type === 'text');
+    // Extract text content from the response
+    const textContent = message.content.find(block => block.type === 'text');
     if (!textContent || textContent.type !== 'text') {
       throw new Error('No text content in Claude response');
     }
@@ -458,3 +414,4 @@ export async function generateScriptsWithClaude(headlines: string[]): Promise<{
 
   return { scripts, fullScript };
 }
+

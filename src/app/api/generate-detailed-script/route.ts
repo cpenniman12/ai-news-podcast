@@ -3,6 +3,10 @@ import { createClient as createSupabaseClient } from '@/utils/supabase/server';
 import { v4 as uuidv4 } from 'uuid';
 import { generateScriptsWithClaude } from '@/utils/claude-agent';
 
+// Increase route timeout for long-running script generation
+export const maxDuration = 300; // 5 minutes
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: NextRequest) {
   // Validate required environment variables at runtime
   const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
@@ -14,17 +18,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Keep OpenAI validation for TTS (audio generation)
-  const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-  if (!OPENAI_API_KEY) {
-    console.error('❌ [API] OPENAI_API_KEY environment variable is required');
-    return NextResponse.json(
-      { error: 'OPENAI_API_KEY not configured' },
-      { status: 500 }
-    );
-  }
-
-  console.log('🎙️ [API] Detailed script generation API called');
+  console.log('🎙️ [API] Detailed script generation API called (using Claude)');
   
   try {
     const { headlines } = await req.json();
