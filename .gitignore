@@ -129,3 +129,6 @@ CLAUDE_CODE_*.md
 venv/
 __pycache__/
 *.pyc
+
+# Headlines cache
+.cache/

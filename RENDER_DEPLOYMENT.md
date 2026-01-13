@@ -10,12 +10,11 @@
 ## Prerequisites
 1. Push your code to GitHub (already done)
 2. Have your API keys ready:
-   - `BRAVE_API_KEY`: BSAZvlS18iczG3NjJyfJ_iVFZY2Nk3r
+   - `ANTHROPIC_API_KEY`: (your Anthropic API key)
+   - `BRAVE_API_KEY`: (your Brave Search API key)
    - `OPENAI_API_KEY`: (your OpenAI key)
-   - `PPLX_API_KEY`: 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
    - `NEXT_PUBLIC_SUPABASE_URL`: (your Supabase URL)
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: (your Supabase anon key)
-   - `SUPABASE_SERVICE_ROLE_KEY`: (your Supabase service key)
 
 ## Step 1: Create Render Account
 1. Go to https://render.com
@@ -45,13 +44,15 @@ In the **Environment** section, add these variables:
 
 ```
 NODE_ENV=production
-BRAVE_API_KEY=BSAZvlS18iczG3NjJyfJ_iVFZY2Nk3r
+ANTHROPIC_API_KEY=[your-anthropic-key]
+BRAVE_API_KEY=[your-brave-search-key]
 OPENAI_API_KEY=[your-openai-key]
-PPLX_API_KEY=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
 NEXT_PUBLIC_SUPABASE_URL=[your-supabase-url]
 NEXT_PUBLIC_SUPABASE_ANON_KEY=[your-supabase-anon-key]
-SUPABASE_SERVICE_ROLE_KEY=[your-supabase-service-key]
+CRON_SECRET=[generate-a-random-secret-for-cron-jobs]
 ```
+
+**Important:** The `CRON_SECRET` is used to secure the daily headline refresh endpoint. Generate a random string (like `your-secure-random-string-123`) to prevent unauthorized access.
 
 ## Step 5: Deploy
 1. Click **"Create Web Service"**
@@ -70,6 +71,53 @@ SUPABASE_SERVICE_ROLE_KEY=[your-supabase-service-key]
 1. Visit your Render URL
 2. Test the headlines API: `https://your-app.onrender.com/api/headlines`
 3. Check the health endpoint: `https://your-app.onrender.com/api/health`
+
+## Step 8: Set Up Daily Headlines Refresh (IMPORTANT!)
+
+The app uses a **file-based cache** for headlines that persists across requests but needs daily updates. Set up a cron job to refresh headlines every day at 6am ET.
+
+### Option 1: Use Render Cron Jobs (Recommended if available)
+1. In your Render dashboard, create a new **Cron Job**
+2. Configure:
+   - **Name**: `refresh-headlines-daily`
+   - **Command**: `curl -X GET "https://your-app.onrender.com/api/cron/refresh-headlines?secret=YOUR_CRON_SECRET"`
+   - **Schedule**: `0 11 * * *` (6am ET = 11am UTC in winter, 10am UTC in summer)
+   - Replace `YOUR_CRON_SECRET` with your actual `CRON_SECRET` value
+
+### Option 2: Use External Cron Service (Free)
+If Render cron jobs aren't available on your plan, use a free service like cron-job.org:
+
+1. Go to https://cron-job.org (or similar service)
+2. Create a free account
+3. Create a new cron job:
+   - **URL**: `https://your-app.onrender.com/api/cron/refresh-headlines?secret=YOUR_CRON_SECRET`
+   - **Schedule**: `0 11 * * *` (daily at 11am UTC)
+   - **Method**: GET
+4. Enable the job
+
+### Testing the Cron Endpoint
+Test manually to ensure it works:
+```bash
+curl "https://your-app.onrender.com/api/cron/refresh-headlines?secret=YOUR_CRON_SECRET"
+```
+
+You should see a response like:
+```json
+{
+  "success": true,
+  "message": "Headlines refreshed successfully",
+  "count": 20,
+  "duration": "45s",
+  "timestamp": "2026-01-12T11:00:00.000Z"
+}
+```
+
+### How the Caching Works
+- **First load**: App serves fallback headlines immediately (no loading screen!)
+- **After cron job runs**: Fresh AI-curated headlines are cached in `.cache/headlines.json`
+- **Subsequent loads**: Instant - headlines served from cache
+- **Cache survives**: Server restarts (stored in persistent disk)
+- **Daily refresh**: Cron job generates fresh headlines each morning
 
 ## Troubleshooting
 
