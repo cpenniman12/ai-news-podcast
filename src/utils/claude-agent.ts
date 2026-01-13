@@ -36,12 +36,14 @@ async function searchWithBrave(query: string, count: number = 20): Promise<Searc
     return [];
   }
 
-  console.log(`🔍 [Brave] Searching: "${query}" (${count} results)`);
+  // Brave free tier max is 20 results per request
+  const limitedCount = Math.min(count, 20);
+  console.log(`🔍 [Brave] Searching: "${query}" (${limitedCount} results)`);
 
   try {
     const url = new URL('https://api.search.brave.com/res/v1/web/search');
     url.searchParams.set('q', query);
-    url.searchParams.set('count', String(count));
+    url.searchParams.set('count', String(limitedCount));
     url.searchParams.set('freshness', 'pw'); // Past week
     url.searchParams.set('text_decorations', 'false');
 
@@ -100,7 +102,7 @@ const NEWS_SEARCH_TOOL: Anthropic.Messages.Tool = {
       },
       count: {
         type: 'number',
-        description: 'Number of results to return (default 20, max 50)'
+        description: 'Number of results to return (default 20, max 20)'
       }
     },
     required: ['query']
