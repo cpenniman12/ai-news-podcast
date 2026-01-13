@@ -11,7 +11,7 @@
 1. Push your code to GitHub (already done)
 2. Have your API keys ready:
    - `BRAVE_API_KEY`: [your-brave-api-key]
-   - `OPENAI_API_KEY`: (your OpenAI key)
+   - `OPENAI_API_KEY`: [your-openai-key]
    - `PPLX_API_KEY`: [your-pplx-api-key]
    - `NEXT_PUBLIC_SUPABASE_URL`: (your Supabase URL)
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: (your Supabase anon key)
