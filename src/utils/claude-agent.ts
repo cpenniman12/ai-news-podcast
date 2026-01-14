@@ -189,8 +189,6 @@ For each story segment:
 - If its a product release, concisely explain how it may fit into an engineer or product managers workflow
 - End with a smooth transition phrase that leads into the next story
 
-**Use the search_news tool as needed to gather story information. you may need to make several tool calls for one story**
-
 CRITICAL: be 100% sure everything in your story is accurate. your highest priority is accuracy.
 
 Format: Write ONLY the spoken script text. No stage directions, no metadata, no explanations about what you're doing.`;
