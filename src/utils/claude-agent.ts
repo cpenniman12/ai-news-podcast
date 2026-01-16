@@ -40,40 +40,62 @@ async function searchWithBrave(query: string, count: number = 20): Promise<Searc
   const limitedCount = Math.min(count, 20);
   console.log(`🔍 [Brave] Searching: "${query}" (${limitedCount} results)`);
 
-  try {
-    const url = new URL('https://api.search.brave.com/res/v1/web/search');
-    url.searchParams.set('q', query);
-    url.searchParams.set('count', String(limitedCount));
-    url.searchParams.set('freshness', 'pw'); // Past week
-    url.searchParams.set('text_decorations', 'false');
+  const maxRetries = 3;
+  let lastError: Error | null = null;
 
-    const response = await fetch(url.toString(), {
-      headers: {
-        'Accept': 'application/json',
-        'X-Subscription-Token': BRAVE_API_KEY,
-      },
-    });
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const url = new URL('https://api.search.brave.com/res/v1/web/search');
+      url.searchParams.set('q', query);
+      url.searchParams.set('count', String(limitedCount));
+      url.searchParams.set('freshness', 'pw'); // Past week
+      url.searchParams.set('text_decorations', 'false');
 
-    if (!response.ok) {
-      console.error(`❌ [Brave] Search failed: ${response.status} ${response.statusText}`);
-      return [];
+      const response = await fetch(url.toString(), {
+        headers: {
+          'Accept': 'application/json',
+          'X-Subscription-Token': BRAVE_API_KEY,
+        },
+      });
+
+      if (response.status === 429) {
+        const retryAfter = response.headers.get('retry-after');
+        const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : 2000 * attempt;
+        console.warn(`⚠️ [Brave] Rate limited (429). Waiting ${waitTime}ms before retry ${attempt}/${maxRetries}...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        continue;
+      }
+
+      if (!response.ok) {
+        console.error(`❌ [Brave] Search failed: ${response.status} ${response.statusText}`);
+        return [];
+      }
+
+      const data = await response.json();
+      const results: SearchResult[] = (data.web?.results || []).map((r: { title?: string; description?: string; url?: string; age?: string }) => ({
+        title: r.title || '',
+        description: (r.description || '').slice(0, 200), // Trim to 200 chars max
+        url: r.url || '',
+        published: r.age || '',
+      }));
+
+      console.log(`✅ [Brave] Found ${results.length} results`);
+      return results;
+
+    } catch (error) {
+      console.error(`❌ [Brave] Search error on attempt ${attempt}:`, error);
+      lastError = error as Error;
+
+      if (attempt < maxRetries) {
+        const waitTime = 1000 * attempt;
+        console.log(`⏳ [Brave] Waiting ${waitTime}ms before retry...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      }
     }
-
-    const data = await response.json();
-    const results: SearchResult[] = (data.web?.results || []).map((r: { title?: string; description?: string; url?: string; age?: string }) => ({
-      title: r.title || '',
-      description: (r.description || '').slice(0, 200), // Trim to 200 chars max
-      url: r.url || '',
-      published: r.age || '',
-    }));
-
-    console.log(`✅ [Brave] Found ${results.length} results`);
-    return results;
-
-  } catch (error) {
-    console.error('❌ [Brave] Search error:', error);
-    return [];
   }
+
+  console.error('❌ [Brave] All retry attempts failed:', lastError);
+  return [];
 }
 
 /**
