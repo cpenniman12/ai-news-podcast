@@ -177,19 +177,22 @@ Your style is:
 - Focused on the "so what" - why this would matter to an AI product manager building coding agents
 - Concise and to the point
 
-CRITICAL: Write the ACTUAL podcast script. Do NOT write meta-commentary like "Looking at the results..." or "Let me craft...". 
+CRITICAL: Write the ACTUAL podcast script. Do NOT write meta-commentary like "Looking at the results..." or "Let me craft...".
 Just write the spoken words the host would say.
 
+You have access to a search_news tool. USE IT to look up the full details about the headline you're given. This will give you accurate, up-to-date information to include in your script instead of relying on outdated training data.
+
 For each story segment:
+- FIRST: Use search_news to look up the headline and get current details
 - Write a 2-3 minute segment (approximately 300-450 words)
 - Cut straight to the story - NO intro or greeting
 - Explain the key details: who, what, when, where, why.
 - Include specific numbers, funding amounts, or technical details.
-- Include specific quotes from key people from X/Twitter or from company release (this is great to have!). be concise and to the point when you present these quotes. 
+- Include specific quotes from key people from X/Twitter or from company release (this is great to have!). be concise and to the point when you present these quotes.
 - If its a product release, concisely explain how it may fit into an engineer or product managers workflow
 - End with a smooth transition phrase that leads into the next story
 
-CRITICAL: be 100% sure everything in your story is accurate. your highest priority is accuracy.
+CRITICAL: be 100% sure everything in your story is accurate. your highest priority is accuracy. Always search for the story first to verify details.
 
 Format: Write ONLY the spoken script text. No stage directions, no metadata, no explanations about what you're doing.`;
 
@@ -232,7 +235,7 @@ Generate exactly 20 headlines, numbered 1-20, each starting with ** and ending w
     ];
 
     let response = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-5-20250929',
       max_tokens: 4096,
       system: HEADLINE_SYSTEM_PROMPT,
       tools: [NEWS_SEARCH_TOOL],
@@ -281,7 +284,7 @@ Generate exactly 20 headlines, numbered 1-20, each starting with ** and ending w
 
       // Continue conversation
       response = await client.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-5-20250929',
         max_tokens: 4096,
         system: HEADLINE_SYSTEM_PROMPT,
         tools: [NEWS_SEARCH_TOOL],
@@ -335,11 +338,11 @@ Generate exactly 20 headlines, numbered 1-20, each starting with ** and ending w
 }
 
 /**
- * Generate a podcast script for a single headline using Claude
+ * Generate a podcast script for a single headline using Claude with search tool access
  */
 export async function generateScriptWithClaude(headline: string): Promise<string> {
   console.log(`✍️ [Claude] Generating script for: ${headline.slice(0, 80)}...`);
-  
+
   const client = createAnthropicClient();
 
   try {
@@ -347,35 +350,92 @@ export async function generateScriptWithClaude(headline: string): Promise<string
 
 ${headline}
 
-IMPORTANT: Write ONLY the spoken words. Do not write any meta-commentary like "Looking at the results..." or "Let me clarify...". 
-Just write what the podcast host would actually say out loud.
+IMPORTANT:
+1. FIRST use the search_news tool to look up this headline and get accurate, current details
+2. THEN write ONLY the spoken words. Do not write any meta-commentary like "Looking at the results..." or "Let me clarify...".
+   Just write what the podcast host would actually say out loud.
 
 Include:
 - Key details and context about the story
-- Specific numbers, amounts, or technical specifications  
+- Specific numbers, amounts, or technical specifications
 - Why this matters for AI builders and entrepreneurs
 - A smooth transition phrase at the end to lead into the next story
 
 Write only the spoken script text, ready to be read aloud. Start immediately with the content.`;
 
-    const message = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
+    let messages: Anthropic.Messages.MessageParam[] = [
+      { role: 'user', content: userPrompt }
+    ];
+
+    let response = await client.messages.create({
+      model: 'claude-sonnet-4-5-20250929',
       max_tokens: 2048,
       system: SCRIPT_SYSTEM_PROMPT,
-      messages: [
-        { role: 'user', content: userPrompt }
-      ]
+      tools: [NEWS_SEARCH_TOOL],
+      messages,
     });
 
-    // Extract text content from the response
-    const textContent = message.content.find(block => block.type === 'text');
+    console.log('📊 [Claude Script] Initial response - stop_reason:', response.stop_reason);
+
+    // Agentic loop: Handle tool calls
+    let loopCount = 0;
+    const maxLoops = 5;
+
+    while (response.stop_reason === 'tool_use' && loopCount < maxLoops) {
+      loopCount++;
+      console.log(`🔄 [Claude Script] Tool use loop ${loopCount}...`);
+
+      // Get tool use blocks
+      const toolUseBlocks = response.content.filter(
+        (block): block is Anthropic.Messages.ToolUseBlock => block.type === 'tool_use'
+      );
+
+      // Add assistant message
+      messages.push({ role: 'assistant', content: response.content });
+
+      // Process each tool call and get results
+      const toolResults: Anthropic.Messages.ToolResultBlockParam[] = [];
+
+      for (const toolUse of toolUseBlocks) {
+        if (toolUse.name === 'search_news') {
+          const input = toolUse.input as { query: string; count?: number };
+          const searchResults = await searchWithBrave(input.query, input.count || 10);
+          const formattedResults = formatSearchResults(searchResults);
+
+          console.log(`📊 [Claude Script] Search returned ${searchResults.length} results`);
+
+          toolResults.push({
+            type: 'tool_result',
+            tool_use_id: toolUse.id,
+            content: formattedResults,
+          });
+        }
+      }
+
+      // Add tool results
+      messages.push({ role: 'user', content: toolResults });
+
+      // Continue conversation
+      response = await client.messages.create({
+        model: 'claude-sonnet-4-5-20250929',
+        max_tokens: 2048,
+        system: SCRIPT_SYSTEM_PROMPT,
+        tools: [NEWS_SEARCH_TOOL],
+        messages,
+      });
+
+      console.log(`📊 [Claude Script] Loop ${loopCount} - stop_reason:`, response.stop_reason);
+    }
+
+    // Extract text content from the final response
+    const textContent = response.content.find(block => block.type === 'text');
     if (!textContent || textContent.type !== 'text') {
       throw new Error('No text content in Claude response');
     }
 
     const script = textContent.text.trim();
-    console.log(`✅ [Claude] Script generated: ${script.length} characters`);
-    console.log(`📊 [Claude] Script usage:`, message.usage);
+    console.log(`✅ [Claude] Script generated: ${script.length} characters (${loopCount} search loops)`);
+    console.log(`📊 [Claude] Script usage:`, response.usage);
 
     return script;
 
