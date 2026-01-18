@@ -1,5 +1,5 @@
 // Service Worker for AI News Podcast PWA
-const CACHE_NAME = 'ai-news-podcast-v1';
+const CACHE_NAME = 'ai-news-podcast-v2';
 const urlsToCache = [
   '/',
   '/manifest.json'
@@ -31,6 +31,18 @@ self.addEventListener('activate', (event) => {
 
 // Fetch event - serve from cache, fallback to network
 self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+
+  // Skip API requests - let them go directly to network
+  if (url.pathname.startsWith('/api/')) {
+    return;
+  }
+
+  // Skip non-GET requests (POST, PUT, DELETE, etc.)
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
