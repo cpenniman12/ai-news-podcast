@@ -4,17 +4,26 @@ import { useState, useRef, useEffect } from 'react';
 
 interface AudioPlayerProps {
   audioUrl: string;
-  onBack: () => void;
-  selectedCount: number;
+  onStoryEnd?: () => void;
+  onPrevious?: () => void;
+  onNext?: () => void;
+  currentStory?: number;
+  totalStories?: number;
 }
 
-export function AudioPlayer({ audioUrl, onBack, selectedCount }: AudioPlayerProps) {
+export function AudioPlayer({ 
+  audioUrl, 
+  onStoryEnd, 
+  onPrevious, 
+  onNext,
+  currentStory,
+  totalStories 
+}: AudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-  const [timeRemaining, setTimeRemaining] = useState(3600); // 1 hour in seconds
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -88,6 +97,10 @@ export function AudioPlayer({ audioUrl, onBack, selectedCount }: AudioPlayerProp
       console.log('🏁 Audio playback ended');
       setIsPlaying(false);
       setCurrentTime(0);
+      // Call onStoryEnd callback if provided
+      if (onStoryEnd) {
+        onStoryEnd();
+      }
     };
 
     audio.addEventListener('loadstart', handleLoadStart);
@@ -106,11 +119,6 @@ export function AudioPlayer({ audioUrl, onBack, selectedCount }: AudioPlayerProp
       setIsLoading(false);
     }, 5000);
 
-    // Countdown timer for 1-hour availability
-    const countdownInterval = setInterval(() => {
-      setTimeRemaining(prev => Math.max(0, prev - 1));
-    }, 1000);
-
     return () => {
       audio.removeEventListener('loadstart', handleLoadStart);
       audio.removeEventListener('progress', handleProgress);
@@ -122,12 +130,8 @@ export function AudioPlayer({ audioUrl, onBack, selectedCount }: AudioPlayerProp
       audio.removeEventListener('timeupdate', handleTimeUpdate);
       audio.removeEventListener('ended', handleEnded);
       clearTimeout(fallbackTimeout);
-      clearInterval(countdownInterval);
-      
-      // Don't clean up blob URL here - it may still be needed if component remounts
-      // The cleanup should happen when going back to headlines
     };
-  }, [audioUrl]);
+  }, [audioUrl, onStoryEnd]);
 
   const togglePlayPause = () => {
     const audio = audioRef.current;
@@ -156,47 +160,10 @@ export function AudioPlayer({ audioUrl, onBack, selectedCount }: AudioPlayerProp
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const formatTimeRemaining = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    
-    if (hours > 0) {
-      return `${hours}h ${mins}m`;
-    }
-    return `${mins}m ${secs}s`;
-  };
-
   const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
     <div className="bg-gray-900 rounded-lg shadow-md overflow-hidden border border-gray-800">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6">
-        <div className="flex items-center justify-between mb-4">
-          <button
-            onClick={onBack}
-            className="flex items-center space-x-2 text-white/90 hover:text-white transition-colors"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            <span>Back to Stories</span>
-          </button>
-          
-          <div className="text-right text-sm">
-            <div className="text-white/90">Expires in</div>
-            <div className="font-bold">{formatTimeRemaining(timeRemaining)}</div>
-          </div>
-        </div>
-        
-        <div>
-          <h1 className="text-2xl font-bold mb-2">Your AI News Podcast</h1>
-          <p className="text-white/90">
-            {selectedCount} stories • AI-generated just for you
-          </p>
-        </div>
-      </div>
 
       {/* Player Controls */}
       <div className="p-6">
@@ -256,25 +223,6 @@ export function AudioPlayer({ audioUrl, onBack, selectedCount }: AudioPlayerProp
             </div>
           </>
         )}
-
-        {/* Info Cards */}
-        <div className="space-y-4">
-          {/* Availability Notice */}
-          <div className="bg-amber-900 bg-opacity-30 border border-amber-700 rounded-lg p-4">
-            <div className="flex items-center space-x-2 text-amber-300 mb-2">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span className="font-medium">Temporary Availability</span>
-            </div>
-            <p className="text-sm text-amber-300">
-              Your podcast will be automatically deleted in {formatTimeRemaining(timeRemaining)}. 
-              Listen now or bookmark this page to access it later.
-            </p>
-          </div>
-
-
-        </div>
       </div>
     </div>
   );
