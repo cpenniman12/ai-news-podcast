@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { AudioPlayer } from './AudioPlayer';
 
 interface Story {
@@ -24,7 +24,6 @@ interface StorySwitcherProps {
 
 export function StorySwitcher({ episode, stories }: StorySwitcherProps) {
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
 
   const currentStory = stories[currentStoryIndex];
   const canGoBack = currentStoryIndex > 0;

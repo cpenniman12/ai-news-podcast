@@ -19,7 +19,7 @@ export async function uploadAudioToSupabase(
   const storagePath = `podcasts/${new Date().toISOString().split('T')[0]}/${fileName}`;
   
   // Upload to Supabase Storage
-  const { data, error } = await supabase.storage
+  const { error } = await supabase.storage
     .from('podcast-audio')
     .upload(storagePath, audioBuffer, {
       contentType: 'audio/mpeg',

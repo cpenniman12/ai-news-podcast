@@ -13,11 +13,7 @@ interface AudioPlayerProps {
 
 export function AudioPlayer({ 
   audioUrl, 
-  onStoryEnd, 
-  onPrevious, 
-  onNext,
-  currentStory,
-  totalStories 
+  onStoryEnd
 }: AudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);

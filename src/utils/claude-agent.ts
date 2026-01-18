@@ -252,7 +252,7 @@ Format each headline like this:
 Generate exactly 20 headlines, numbered 1-20, each starting with ** and ending with a date in parentheses.`;
 
   try {
-    let messages: Anthropic.Messages.MessageParam[] = [
+    const messages: Anthropic.Messages.MessageParam[] = [
       { role: 'user', content: userPrompt }
     ];
 
@@ -394,7 +394,7 @@ Format each headline like this:
 Generate exactly 5 headlines, numbered 1-5, each starting with ** and ending with a date in parentheses.`;
 
   try {
-    let messages: Anthropic.Messages.MessageParam[] = [
+    const messages: Anthropic.Messages.MessageParam[] = [
       { role: 'user', content: userPrompt }
     ];
 
@@ -527,7 +527,7 @@ Include:
 
 Write only the spoken script text, ready to be read aloud. Start immediately with the content.`;
 
-    let messages: Anthropic.Messages.MessageParam[] = [
+    const messages: Anthropic.Messages.MessageParam[] = [
       { role: 'user', content: userPrompt }
     ];
 
