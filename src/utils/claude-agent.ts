@@ -26,6 +26,85 @@ interface SearchResult {
   published?: string;
 }
 
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+const isRateLimitError = (error: unknown): boolean => {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+
+  const err = error as {
+    status?: number;
+    statusCode?: number;
+    response?: { status?: number };
+    message?: string;
+  };
+
+  if (err.status === 429 || err.statusCode === 429 || err.response?.status === 429) {
+    return true;
+  }
+
+  return typeof err.message === 'string' && err.message.includes('rate_limit');
+};
+
+const getRetryAfterMs = (error: unknown): number | null => {
+  if (!error || typeof error !== 'object') {
+    return null;
+  }
+
+  const err = error as {
+    headers?: Record<string, string>;
+    response?: { headers?: Record<string, string> };
+  };
+
+  const retryAfter =
+    err.headers?.['retry-after'] ||
+    err.headers?.['Retry-After'] ||
+    err.response?.headers?.['retry-after'] ||
+    err.response?.headers?.['Retry-After'];
+
+  if (!retryAfter) {
+    return null;
+  }
+
+  const seconds = Number(retryAfter);
+  if (Number.isFinite(seconds) && seconds > 0) {
+    return seconds * 1000;
+  }
+
+  return null;
+};
+
+const createMessageWithRetry = async (
+  client: Anthropic,
+  params: Anthropic.Messages.MessageCreateParamsNonStreaming,
+  label: string,
+  maxRetries: number = 2
+): Promise<Anthropic.Messages.Message> => {
+  let attempt = 0;
+  let backoffMs = 2000;
+
+  while (true) {
+    try {
+      return await client.messages.create(params);
+    } catch (error) {
+      if (!isRateLimitError(error) || attempt >= maxRetries) {
+        throw error;
+      }
+
+      const retryAfterMs = getRetryAfterMs(error);
+      const waitMs = retryAfterMs ?? backoffMs;
+      attempt += 1;
+      backoffMs *= 2;
+
+      console.warn(
+        `⚠️ [Claude] Rate limited during ${label}. Waiting ${waitMs}ms before retry ${attempt}/${maxRetries}...`
+      );
+      await sleep(waitMs);
+    }
+  }
+};
+
 /**
  * Call Brave Search API and return trimmed results (just titles + snippets)
  * This keeps token usage low - typically ~100 tokens per 10 results
@@ -36,8 +115,8 @@ async function searchWithBrave(query: string, count: number = 20): Promise<Searc
     return [];
   }
 
-  // Brave free tier max is 20 results per request
-  const limitedCount = Math.min(count, 20);
+  // Brave free tier max is 20 results per request, keep results small to limit token usage
+  const limitedCount = Math.min(count, 10);
   console.log(`🔍 [Brave] Searching: "${query}" (${limitedCount} results)`);
 
   const maxRetries = 3;
@@ -74,7 +153,7 @@ async function searchWithBrave(query: string, count: number = 20): Promise<Searc
       const data = await response.json();
       const results: SearchResult[] = (data.web?.results || []).map((r: { title?: string; description?: string; url?: string; age?: string }) => ({
         title: r.title || '',
-        description: (r.description || '').slice(0, 200), // Trim to 200 chars max
+        description: (r.description || '').slice(0, 120), // Trim to reduce prompt size
         url: r.url || '',
         published: r.age || '',
       }));
@@ -256,19 +335,23 @@ Generate exactly 20 headlines, numbered 1-20, each starting with ** and ending w
       { role: 'user', content: userPrompt }
     ];
 
-    let response = await client.messages.create({
+    let response = await createMessageWithRetry(
+      client,
+      {
       model: 'claude-sonnet-4-5-20250929',
-      max_tokens: 4096,
-      system: HEADLINE_SYSTEM_PROMPT,
-      tools: [NEWS_SEARCH_TOOL],
-      messages,
-    });
+        max_tokens: 2048,
+        system: HEADLINE_SYSTEM_PROMPT,
+        tools: [NEWS_SEARCH_TOOL],
+        messages,
+      },
+      'headline compilation'
+    );
 
     console.log('📊 [Claude] Initial response - stop_reason:', response.stop_reason);
 
     // Agentic loop: Handle tool calls
     let loopCount = 0;
-    const maxLoops = 10;
+    const maxLoops = 6;
 
     while (response.stop_reason === 'tool_use' && loopCount < maxLoops) {
       loopCount++;
@@ -305,13 +388,17 @@ Generate exactly 20 headlines, numbered 1-20, each starting with ** and ending w
       messages.push({ role: 'user', content: toolResults });
 
       // Continue conversation
-      response = await client.messages.create({
+      response = await createMessageWithRetry(
+        client,
+        {
         model: 'claude-sonnet-4-5-20250929',
-        max_tokens: 4096,
-        system: HEADLINE_SYSTEM_PROMPT,
-        tools: [NEWS_SEARCH_TOOL],
-        messages,
-      });
+        max_tokens: 2048,
+          system: HEADLINE_SYSTEM_PROMPT,
+          tools: [NEWS_SEARCH_TOOL],
+          messages,
+        },
+        'headline compilation loop'
+      );
 
       console.log(`📊 [Claude] Loop ${loopCount} - stop_reason:`, response.stop_reason);
       console.log(`📊 [Claude] Loop ${loopCount} - usage:`, response.usage);
@@ -398,19 +485,23 @@ Generate exactly 5 headlines, numbered 1-5, each starting with ** and ending wit
       { role: 'user', content: userPrompt }
     ];
 
-    let response = await client.messages.create({
+    let response = await createMessageWithRetry(
+      client,
+      {
       model: 'claude-sonnet-4-5-20250929',
-      max_tokens: 4096,
-      system: HEADLINE_SYSTEM_PROMPT,
-      tools: [NEWS_SEARCH_TOOL],
-      messages,
-    });
+        max_tokens: 2048,
+        system: HEADLINE_SYSTEM_PROMPT,
+        tools: [NEWS_SEARCH_TOOL],
+        messages,
+      },
+      'podcast headlines'
+    );
 
     console.log('📊 [Claude] Initial response - stop_reason:', response.stop_reason);
 
     // Agentic loop: Handle tool calls
     let loopCount = 0;
-    const maxLoops = 10;
+    const maxLoops = 6;
 
     while (response.stop_reason === 'tool_use' && loopCount < maxLoops) {
       loopCount++;
@@ -447,13 +538,17 @@ Generate exactly 5 headlines, numbered 1-5, each starting with ** and ending wit
       messages.push({ role: 'user', content: toolResults });
 
       // Continue conversation
-      response = await client.messages.create({
+      response = await createMessageWithRetry(
+        client,
+        {
         model: 'claude-sonnet-4-5-20250929',
-        max_tokens: 4096,
-        system: HEADLINE_SYSTEM_PROMPT,
-        tools: [NEWS_SEARCH_TOOL],
-        messages,
-      });
+          max_tokens: 2048,
+          system: HEADLINE_SYSTEM_PROMPT,
+          tools: [NEWS_SEARCH_TOOL],
+          messages,
+        },
+        'podcast headline loop'
+      );
 
       console.log(`📊 [Claude] Loop ${loopCount} - stop_reason:`, response.stop_reason);
       console.log(`📊 [Claude] Loop ${loopCount} - usage:`, response.usage);
@@ -531,13 +626,17 @@ Write only the spoken script text, ready to be read aloud. Start immediately wit
       { role: 'user', content: userPrompt }
     ];
 
-    let response = await client.messages.create({
+    let response = await createMessageWithRetry(
+      client,
+      {
       model: 'claude-sonnet-4-5-20250929',
       max_tokens: 2048,
       system: SCRIPT_SYSTEM_PROMPT,
       tools: [NEWS_SEARCH_TOOL],
       messages,
-    });
+      },
+      'script generation'
+    );
 
     console.log('📊 [Claude Script] Initial response - stop_reason:', response.stop_reason);
 
@@ -580,13 +679,17 @@ Write only the spoken script text, ready to be read aloud. Start immediately wit
       messages.push({ role: 'user', content: toolResults });
 
       // Continue conversation
-      response = await client.messages.create({
+      response = await createMessageWithRetry(
+        client,
+        {
         model: 'claude-sonnet-4-5-20250929',
         max_tokens: 2048,
         system: SCRIPT_SYSTEM_PROMPT,
         tools: [NEWS_SEARCH_TOOL],
         messages,
-      });
+        },
+        'script generation loop'
+      );
 
       console.log(`📊 [Claude Script] Loop ${loopCount} - stop_reason:`, response.stop_reason);
     }

@@ -11,15 +11,38 @@ const isPlaceholder = (value?: string) =>
   value === 'your_supabase_url_here' ||
   value === 'your_supabase_anon_key_here'
 
+const normalizeSupabaseUrl = (raw?: string): string | null => {
+  if (!raw) {
+    return null
+  }
+
+  const trimmed = raw.trim()
+  if (!trimmed) {
+    return null
+  }
+
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    return trimmed
+  }
+
+  if (trimmed.includes('.')) {
+    return `https://${trimmed}`
+  }
+
+  return `https://${trimmed}.supabase.co`
+}
+
 export function getSupabaseConfig(): SupabaseConfig | null {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.SUPABASE_ANON_KEY
+  const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL
+  const anonKey =
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() ?? process.env.SUPABASE_ANON_KEY?.trim()
+  const url = normalizeSupabaseUrl(rawUrl)
 
   if (!url || !anonKey) {
     return null
   }
 
-  if (isPlaceholder(url) || isPlaceholder(anonKey) || !url?.startsWith('https://')) {
+  if (isPlaceholder(rawUrl) || isPlaceholder(anonKey) || !url?.startsWith('https://')) {
     return null
   }
 
