@@ -35,12 +35,15 @@ An intelligent AI-powered application that transforms the latest AI and technolo
 - Fixed bottom action bar for podcast generation
 - Responsive design optimized for desktop and mobile
 - Dark theme with elegant typography
+- Story-by-story navigation with auto-advance
+- Individual audio playback for each story
 
 ### Security and Configuration
 - Environment-based API key management
 - Demo mode when authentication is not configured
 - Comprehensive error handling and graceful fallbacks
-- Supabase integration for optional user tracking
+- Supabase integration for episode storage and story management
+- MCP (Model Context Protocol) support for AI-powered database interactions
 
 ## Quick Start
 
@@ -51,7 +54,7 @@ An intelligent AI-powered application that transforms the latest AI and technolo
   - [Anthropic API](https://console.anthropic.com/) (Required - for Claude Agent SDK)
   - [Brave Search API](https://brave.com/search/api/) (Required - free tier available)
   - [OpenAI API](https://platform.openai.com/api-keys) (Required - for TTS)
-  - [Supabase](https://supabase.com/) (Optional - for user tracking)
+  - [Supabase](https://supabase.com/) (Required - for episode storage and story management)
 
 ### Installation
 
@@ -77,7 +80,13 @@ An intelligent AI-powered application that transforms the latest AI and technolo
    npm run dev
    ```
 
-5. Open the application at http://localhost:3000
+5. Set up Supabase database (see [Supabase MCP Setup Guide](SUPABASE_MCP_SETUP.md))
+   ```bash
+   # Run migrations
+   ./run-migration.sh YOUR_PROJECT_REF YOUR_DB_PASSWORD
+   ```
+
+6. Open the application at http://localhost:3000
 
 ## Environment Variables
 
@@ -122,6 +131,18 @@ Script Content --> OpenAI TTS --> MP3 Generation --> Temporary Hosting
 
 ## Usage
 
+### Listening to Daily Episodes
+
+The app automatically generates a complete daily podcast episode with multiple stories. When you visit the homepage:
+
+1. **View Latest Episode**: The app loads the most recent complete podcast episode
+2. **Navigate Stories**: Use the previous/next buttons to switch between stories
+3. **Individual Playback**: Each story has its own audio player with controls
+4. **Auto-Advance**: Stories automatically advance when one finishes (optional)
+5. **Progress Tracking**: See which story you're on (e.g., "Story 2 of 5")
+
+### Generating Custom Episodes (Admin)
+
 1. Browse Headlines: View the 20 best AI/tech news stories curated daily
 2. Select Stories: Click on 1-6 headlines you want to hear about (indicated by white dots)
 3. Generate Podcast: Click "Generate Podcast" when ready
@@ -142,6 +163,7 @@ src/
     HeadlineSelector.tsx           # Minimal headline selection UI
     PodcastGenerator.tsx           # Generation button and progress
     AudioPlayer.tsx                # Clean audio playback interface
+    StorySwitcher.tsx              # Story-by-story navigation and playback
   utils/                           # Utility functions
     claude-agent.ts                # Claude Agent SDK integration
     headlines-client.ts            # Client-side headline fetching
@@ -157,6 +179,7 @@ README.md                          # This file
 - `GET /api/headlines` - Fetch and curate latest AI news headlines using Claude
 - `POST /api/generate-detailed-script` - Research stories with Claude web search and generate podcast script
 - `POST /api/generate-audio` - Convert script to audio using OpenAI TTS
+- `GET /api/episodes/latest` - Fetch the latest complete podcast episode with all stories
 
 ### Key Technologies
 

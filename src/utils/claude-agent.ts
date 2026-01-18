@@ -360,6 +360,148 @@ Generate exactly 20 headlines, numbered 1-20, each starting with ** and ending w
 }
 
 /**
+ * Fetch 5 AI/tech headlines for daily podcast using Claude with custom search tool
+ * Uses same logic as fetchHeadlinesWithClaude but returns only 5 stories
+ * Returns 5 curated headlines
+ */
+export async function fetch5HeadlinesForPodcast(): Promise<string[]> {
+  console.log('🤖 [Claude] Starting 5-headline compilation for daily podcast...');
+  
+  const client = createAnthropicClient();
+  const today = new Date();
+  const dateStr = today.toLocaleDateString('en-US', { 
+    weekday: 'long', 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  });
+
+  const userPrompt = `Today is ${dateStr}. Use the search_news tool to find the most important AI and technology news headlines from the past 7 days.
+
+Do multiple searches to cover different topics - for example:
+1. Search for major AI announcements
+2. Search for AI startup news and funding
+3. Search for AI model releases
+4. Search for any other relevant AI news
+
+After collecting search results, curate exactly 5 of the BEST headlines that fit our criteria.
+
+IMPORTANT: Each headline must be a SPECIFIC news event with a company name, action, and date. Do NOT return category names or source names.
+
+Format each headline like this:
+1. **OpenAI releases GPT-5 with advanced reasoning capabilities** (January 2, 2026)
+
+Generate exactly 5 headlines, numbered 1-5, each starting with ** and ending with a date in parentheses.`;
+
+  try {
+    let messages: Anthropic.Messages.MessageParam[] = [
+      { role: 'user', content: userPrompt }
+    ];
+
+    let response = await client.messages.create({
+      model: 'claude-sonnet-4-5-20250929',
+      max_tokens: 4096,
+      system: HEADLINE_SYSTEM_PROMPT,
+      tools: [NEWS_SEARCH_TOOL],
+      messages,
+    });
+
+    console.log('📊 [Claude] Initial response - stop_reason:', response.stop_reason);
+
+    // Agentic loop: Handle tool calls
+    let loopCount = 0;
+    const maxLoops = 10;
+
+    while (response.stop_reason === 'tool_use' && loopCount < maxLoops) {
+      loopCount++;
+      console.log(`🔄 [Claude] Tool use loop ${loopCount}...`);
+
+      // Get tool use blocks
+      const toolUseBlocks = response.content.filter(
+        (block): block is Anthropic.Messages.ToolUseBlock => block.type === 'tool_use'
+      );
+
+      // Add assistant message
+      messages.push({ role: 'assistant', content: response.content });
+
+      // Process each tool call and get results
+      const toolResults: Anthropic.Messages.ToolResultBlockParam[] = [];
+      
+      for (const toolUse of toolUseBlocks) {
+        if (toolUse.name === 'search_news') {
+          const input = toolUse.input as { query: string; count?: number };
+          const searchResults = await searchWithBrave(input.query, input.count || 20);
+          const formattedResults = formatSearchResults(searchResults);
+          
+          console.log(`📊 [Claude] Search returned ${searchResults.length} results, ~${formattedResults.length} chars`);
+          
+          toolResults.push({
+            type: 'tool_result',
+            tool_use_id: toolUse.id,
+            content: formattedResults,
+          });
+        }
+      }
+
+      // Add tool results
+      messages.push({ role: 'user', content: toolResults });
+
+      // Continue conversation
+      response = await client.messages.create({
+        model: 'claude-sonnet-4-5-20250929',
+        max_tokens: 4096,
+        system: HEADLINE_SYSTEM_PROMPT,
+        tools: [NEWS_SEARCH_TOOL],
+        messages,
+      });
+
+      console.log(`📊 [Claude] Loop ${loopCount} - stop_reason:`, response.stop_reason);
+      console.log(`📊 [Claude] Loop ${loopCount} - usage:`, response.usage);
+    }
+
+    // Extract text content from the final response
+    const textContent = response.content.find(block => block.type === 'text');
+    if (!textContent || textContent.type !== 'text') {
+      console.error('❌ [Claude] No text content in response. Content blocks:', response.content.map(b => b.type));
+      throw new Error('No text content in Claude response');
+    }
+
+    // Parse headlines from response
+    console.log('📝 [Claude] Raw response:', textContent.text.slice(0, 500));
+    
+    const headlines = textContent.text
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => {
+        // Match lines that contain ** and look like headlines
+        return (line.includes('**') && line.includes('(')) || 
+               line.match(/^\d+\.\s*\*\*/) ||
+               line.match(/^-\s*\*\*/) ||
+               line.match(/^\*\*[A-Z]/);
+      })
+      .map(line => {
+        // Remove leading numbers, dashes, or bullets
+        return line.replace(/^[\d]+\.\s*/, '')
+                   .replace(/^-\s*/, '')
+                   .replace(/^•\s*/, '')
+                   .trim();
+      })
+      .filter(line => line.length > 10)
+      .slice(0, 5); // Only take first 5
+
+    console.log(`📰 [Claude] Parsed ${headlines.length} headlines for podcast`);
+    console.log('📋 [Claude] Sample headlines:', headlines.slice(0, 3));
+    console.log(`📊 [Claude] Total loops: ${loopCount}, Final usage:`, response.usage);
+
+    return headlines;
+
+  } catch (error) {
+    console.error('❌ [Claude] Error fetching 5 headlines:', error);
+    throw error;
+  }
+}
+
+/**
  * Generate a podcast script for a single headline using Claude with search tool access
  */
 export async function generateScriptWithClaude(headline: string): Promise<string> {
