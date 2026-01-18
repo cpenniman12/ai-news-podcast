@@ -1,0 +1,33 @@
+# Cursor Rules for AI News Podcast
+
+## MCP Server Configuration
+
+This project uses the Supabase MCP server for database operations.
+
+### Setup Instructions
+
+1. Install MCP server globally:
+   ```bash
+   npm install -g @supabase/mcp-server-postgrest
+   ```
+
+2. Configure your Supabase credentials in `.env.local`:
+   - NEXT_PUBLIC_SUPABASE_URL
+   - NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+3. The MCP server will automatically connect to your Supabase instance using these credentials.
+
+### Available MCP Tools
+
+The Supabase MCP server provides the following capabilities:
+- Query database tables
+- Insert, update, delete records
+- Run SQL queries
+- Inspect database schema
+- Manage database relationships
+
+### Database Schema
+
+See `migrations/01_initial_schema.sql` for the complete database structure:
+- `podcast_episodes`: Main episode records
+- `stories`: Individual story records linked to episodes
