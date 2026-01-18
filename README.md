@@ -200,6 +200,40 @@ The app includes a demo mode that works without Supabase authentication:
 - Fixed Action Bar: Always-accessible generation button
 - Smooth Animations: Subtle hover effects and transitions
 
+## iOS / Mobile App Installation (PWA)
+
+The app can be installed on your iPhone as a Progressive Web App (PWA), providing a native app-like experience without going through the App Store.
+
+### How to Install on iPhone
+
+1. Open the app in **Safari** (must be Safari, not Chrome or other browsers)
+2. Tap the **Share button** (square with arrow pointing up)
+3. Scroll down and tap **"Add to Home Screen"**
+4. Tap **"Add"** in the top right corner
+
+The app will now appear on your home screen with its own icon and open in standalone mode (no browser UI).
+
+### PWA Features
+
+- **Standalone Mode**: Opens without browser navigation bars
+- **Home Screen Icon**: Custom app icon for easy access
+- **Offline Support**: Basic caching for faster loads
+- **Native Feel**: Full-screen experience like a native app
+
+### Technical Implementation
+
+The PWA is implemented with:
+- `public/manifest.json` - App metadata, icons, and display settings
+- `public/sw.js` - Service worker for caching (excludes API routes)
+- Apple-specific meta tags in `layout.tsx` for iOS optimization
+
+### Troubleshooting
+
+If the app isn't working correctly after installation:
+1. Delete the app from your home screen
+2. Clear Safari's website data (Settings → Safari → Clear History and Website Data)
+3. Revisit the site and re-add to home screen
+
 ## Contributing
 
 1. Fork the repository
