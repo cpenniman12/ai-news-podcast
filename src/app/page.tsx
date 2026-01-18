@@ -1,130 +1,90 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/utils/supabase/client';
-import { type User } from '@supabase/supabase-js';
-import { EmailVerification } from '@/components/EmailVerification';
-import { HeadlineSelector } from '@/components/HeadlineSelector';
-import { PodcastGenerator } from '@/components/PodcastGenerator';
-import { AudioPlayer } from '@/components/AudioPlayer';
-import { fetchTechNewsHeadlines } from '@/utils/headlines-client';
+import { StorySwitcher } from '@/components/StorySwitcher';
+
+interface Story {
+  id: string;
+  headline: string;
+  script: string;
+  audio_url: string;
+  order: number;
+}
+
+interface Episode {
+  id: string;
+  title: string;
+  created_at: string;
+}
 
 export default function Home() {
-  const [user, setUser] = useState<User | null>({ id: 'demo-user', email: 'demo@localhost' } as any);
-  const [selectedHeadlines, setSelectedHeadlines] = useState<string[]>([]);
-  const [podcastUrl, setPodcastUrl] = useState<string | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [headlines, setHeadlines] = useState<string[]>([]);
+  const [episode, setEpisode] = useState<Episode | null>(null);
+  const [stories, setStories] = useState<Story[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const supabase = createClient();
-
-  // Fetch headlines immediately on mount - no loading screen!
+  // Fetch latest episode on mount
   useEffect(() => {
-    console.log('🚀 Fetching headlines on mount...');
-    fetchTechNewsHeadlines()
-      .then(fetched => {
-        console.log('✅ Headlines fetched successfully:', fetched.length, 'headlines');
-        setHeadlines(fetched);
+    console.log('🚀 Fetching latest episode...');
+    fetch('/api/episodes/latest')
+      .then(async (res) => {
+        if (!res.ok) {
+          const data = await res.json();
+          if (res.status === 404) {
+            setError(data.message || 'No podcast available yet');
+          } else {
+            setError(data.error || 'Failed to load podcast');
+          }
+          setIsLoading(false);
+          return;
+        }
+        const data = await res.json();
+        console.log('✅ Episode fetched:', data.episode.title, data.stories.length, 'stories');
+        setEpisode(data.episode);
+        setStories(data.stories);
+        setIsLoading(false);
       })
-      .catch(err => {
-        console.error('❌ Error fetching headlines:', err);
-        // Even on error, headlines-client should return fallback data
-        // so we don't need special error handling here
+      .catch((err) => {
+        console.error('❌ Error fetching episode:', err);
+        setError('Failed to load podcast. Please try again later.');
+        setIsLoading(false);
       });
   }, []);
 
-  // Reset selections when going back to headline selection
-  const resetPodcast = () => {
-    // Clean up blob URL to prevent memory leaks
-    if (podcastUrl && podcastUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(podcastUrl);
-      console.log('🗑️ Cleaned up podcast blob URL');
-    }
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <svg className="animate-spin w-8 h-8 text-white mx-auto mb-4" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <p className="text-white text-opacity-60">Loading podcast...</p>
+        </div>
+      </div>
+    );
+  }
 
-    setPodcastUrl(null);
-    setSelectedHeadlines([]);
-    setIsGenerating(false);
-  };
-
-  // Main app interface - no loading screens!
-  // Show immediately with whatever headlines we have (cached or fallback)
-  return (
-    <div className="min-h-screen bg-black flex flex-col">
-      {/* Header */}
-      <header className="px-5 py-6 md:px-10 md:py-10 md:pb-8">
-        <div className="max-w-[680px] mx-auto">
-          <h1 className="text-[1.75rem] md:text-4xl font-semibold tracking-tight mb-2 md:mb-3">
+  // Error state
+  if (error || !episode || stories.length === 0) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="max-w-[680px] mx-auto px-5 text-center">
+          <h1 className="text-[1.75rem] md:text-4xl font-semibold tracking-tight mb-4 text-white">
             The latest AI news, by AI
           </h1>
-          <p className="text-base md:text-lg text-white text-opacity-60 font-normal">
-            curate, generate, listen
+          <p className="text-base md:text-lg text-white text-opacity-60 mb-6">
+            {error || 'No podcast available yet'}
           </p>
-          
-          {/* User info and sign out */}
-          {user && (
-            <div className="mt-4 flex items-center justify-center space-x-4">
-              <span className="text-sm text-gray-400">
-                {supabase ? `Signed in as ${user.email}` : 'Demo Mode'}
-              </span>
-              {supabase && (
-                <button
-                  onClick={async () => {
-                    await supabase.auth.signOut();
-                  }}
-                  className="text-sm text-blue-400 hover:text-blue-300 underline"
-                >
-                  Sign out
-                </button>
-              )}
-            </div>
-          )}
+          <p className="text-sm text-white text-opacity-40">
+            The daily podcast is generated at 6 AM ET. Please check back later.
+          </p>
         </div>
-      </header>
+      </div>
+    );
+  }
 
-      {/* Main Content */}
-      <main className="flex-1 pb-[100px]">
-        {podcastUrl ? (
-          <AudioPlayer 
-            audioUrl={podcastUrl} 
-            onBack={resetPodcast}
-            selectedCount={selectedHeadlines.length}
-          />
-        ) : (
-          <div className="max-w-[680px] mx-auto px-5 py-8 md:px-10 md:py-12">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-sm font-medium uppercase tracking-wider text-white text-opacity-50">
-                Today's Headlines
-              </h2>
-              <span className="text-sm text-white text-opacity-40">
-                {headlines.length} stories
-              </span>
-            </div>
-            
-            <HeadlineSelector
-              headlines={headlines}
-              selectedHeadlines={selectedHeadlines}
-              onSelectionChange={setSelectedHeadlines}
-            />
-          </div>
-        )}
-      </main>
-
-      {/* Fixed Bottom Actions - only show when not playing podcast */}
-      {!podcastUrl && (
-        <div className="fixed bottom-0 left-0 right-0 bg-black bg-opacity-90 backdrop-blur-[20px] p-5 md:p-6 z-[1000]">
-          <div className="max-w-[680px] mx-auto flex justify-center">
-            <PodcastGenerator
-              selectedHeadlines={selectedHeadlines}
-              onGenerate={() => setIsGenerating(true)}
-              onComplete={(url: string) => {
-                setPodcastUrl(url);
-                setIsGenerating(false);
-              }}
-              isGenerating={isGenerating}
-            />
-          </div>
-        </div>
-      )}
-    </div>
-  );
+  // Show StorySwitcher
+  return <StorySwitcher episode={episode} stories={stories} />;
 }
