@@ -5,7 +5,7 @@ import { getHeadlinesWithFallback } from '@/utils/headlines-cache';
 export const maxDuration = 5; // 5 seconds - just read from cache
 export const dynamic = 'force-dynamic'; // Disable caching at the Next.js level
 
-export async function GET(request: Request) {
+export async function GET() {
   console.log('🔌 [API] Headlines API route called');
 
   try {

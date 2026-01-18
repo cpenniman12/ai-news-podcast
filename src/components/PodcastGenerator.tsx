@@ -1,7 +1,5 @@
 'use client';
 
-import { useState } from 'react';
-
 interface PodcastGeneratorProps {
   selectedHeadlines: string[];
   onGenerate: () => void;
@@ -9,9 +7,8 @@ interface PodcastGeneratorProps {
   isGenerating: boolean;
 }
 
-export function PodcastGenerator({ selectedHeadlines, onGenerate, onComplete, isGenerating }: PodcastGeneratorProps) {
-  const [progress, setProgress] = useState(0);
-  const [currentStep, setCurrentStep] = useState('');
+export function PodcastGenerator({ selectedHeadlines, onGenerate, isGenerating }: PodcastGeneratorProps) {
+  // Note: onComplete callback intentionally not used - component simplified for StorySwitcher integration
 
   const isValidSelection = selectedHeadlines.length >= 1 && selectedHeadlines.length <= 6;
 
@@ -19,12 +16,9 @@ export function PodcastGenerator({ selectedHeadlines, onGenerate, onComplete, is
     if (!isValidSelection) return;
     
     onGenerate();
-    setProgress(0);
-    setCurrentStep('Researching selected stories in detail...');
 
     try {
       // Step 1: Generate detailed script with research
-      setProgress(20);
       const scriptRes = await fetch('/api/generate-detailed-script', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -40,9 +34,6 @@ export function PodcastGenerator({ selectedHeadlines, onGenerate, onComplete, is
       // Expecting: { script: string, scripts: string[], stats: object }
       const { script, scripts, stats } = await scriptRes.json();
       console.log('📊 Script generation stats:', stats);
-      
-      setProgress(70);
-      setCurrentStep('Converting script to high-quality audio...');
 
       // Step 2: Generate audio from array of story scripts
       const audioRes = await fetch('/api/generate-audio', {
@@ -71,16 +62,10 @@ export function PodcastGenerator({ selectedHeadlines, onGenerate, onComplete, is
       const audioUrl = URL.createObjectURL(typedBlob);
       console.log('🔗 Audio URL created:', audioUrl);
       
-      setProgress(100);
-      setCurrentStep('Your detailed podcast is ready!');
-      
       console.log('✅ Podcast generation completed successfully');
-      onComplete(audioUrl);
       
     } catch (err) {
       console.error('❌ Podcast generation error:', err);
-      setCurrentStep('An error occurred while generating your podcast. Please try again.');
-      setProgress(0);
     }
   };
 
